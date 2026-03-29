@@ -126,7 +126,6 @@ const app = new Hono<AppEnv>();
 // This resolves them early so all downstream code can read env vars as plain strings.
 app.use('*', async (c, next) => {
   const secretKeys = [
-    'CF_ACCESS_AUD',
     'CF_ACCESS_TEAM_DOMAIN',
     'CF_AI_GATEWAY_ACCOUNT_ID',
     'CF_AI_GATEWAY_GATEWAY_ID',
