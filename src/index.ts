@@ -132,6 +132,9 @@ app.use('*', async (c, next) => {
     'CLOUDFLARE_AI_GATEWAY_API_KEY',
     'CF_ACCOUNT_ID',
     'DEBUG_ROUTES',
+    'OPENCLAW_GATEWAY_TOKEN',
+    'R2_ACCESS_KEY_ID',
+    'R2_SECRET_ACCESS_KEY',
   ] as const;
 
   await Promise.all(
@@ -142,6 +145,13 @@ app.use('*', async (c, next) => {
       }
     }),
   );
+
+  // Log resolved AI Gateway vars for debugging
+  console.log('[Secrets] CLOUDFLARE_AI_GATEWAY_API_KEY resolved:', typeof c.env.CLOUDFLARE_AI_GATEWAY_API_KEY, !!c.env.CLOUDFLARE_AI_GATEWAY_API_KEY);
+  console.log('[Secrets] CF_AI_GATEWAY_ACCOUNT_ID resolved:', typeof c.env.CF_AI_GATEWAY_ACCOUNT_ID, !!c.env.CF_AI_GATEWAY_ACCOUNT_ID);
+  console.log('[Secrets] CF_AI_GATEWAY_GATEWAY_ID resolved:', typeof c.env.CF_AI_GATEWAY_GATEWAY_ID, !!c.env.CF_AI_GATEWAY_GATEWAY_ID);
+  console.log('[Secrets] CF_AI_GATEWAY_MODEL:', c.env.CF_AI_GATEWAY_MODEL);
+
   await next();
 });
 

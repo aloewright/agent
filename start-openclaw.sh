@@ -176,6 +176,8 @@ if (process.env.OPENCLAW_DEV_MODE === 'true') {
 
 // AI Gateway model override (CF_AI_GATEWAY_MODEL=provider/model-id)
 // Adds a provider entry for any AI Gateway provider and sets it as default model.
+// Also cleans up stale provider entries (e.g., old Anthropic config from R2 restore)
+// to prevent OpenClaw from failing on missing API keys.
 // Examples:
 //   workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast
 //   openai/gpt-4o
@@ -190,6 +192,8 @@ if (process.env.CF_AI_GATEWAY_MODEL) {
     const gatewayId = process.env.CF_AI_GATEWAY_GATEWAY_ID;
     const apiKey = process.env.CLOUDFLARE_AI_GATEWAY_API_KEY;
 
+    console.log('AI Gateway env check: accountId=' + !!accountId + ' gatewayId=' + !!gatewayId + ' apiKey=' + !!apiKey);
+
     let baseUrl;
     if (accountId && gatewayId) {
         baseUrl = 'https://gateway.ai.cloudflare.com/v1/' + accountId + '/' + gatewayId + '/' + gwProvider;
@@ -202,8 +206,9 @@ if (process.env.CF_AI_GATEWAY_MODEL) {
         const api = gwProvider === 'anthropic' ? 'anthropic-messages' : 'openai-completions';
         const providerName = 'cf-ai-gw-' + gwProvider;
 
+        // Clear any stale provider configs that would fail without their API keys
         config.models = config.models || {};
-        config.models.providers = config.models.providers || {};
+        config.models.providers = {};
         config.models.providers[providerName] = {
             baseUrl: baseUrl,
             apiKey: apiKey,
