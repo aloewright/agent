@@ -126,15 +126,34 @@ const app = new Hono<AppEnv>();
 // This resolves them early so all downstream code can read env vars as plain strings.
 app.use('*', async (c, next) => {
   const secretKeys = [
+    'ANTHROPIC_API_KEY',
+    'ANTHROPIC_BASE_URL',
+    'OPENAI_API_KEY',
+    'AI_GATEWAY_API_KEY',
+    'AI_GATEWAY_BASE_URL',
     'CF_ACCESS_TEAM_DOMAIN',
+    'CF_ACCESS_AUD',
     'CF_AI_GATEWAY_ACCOUNT_ID',
     'CF_AI_GATEWAY_GATEWAY_ID',
+    'CF_AI_GATEWAY_MODEL',
     'CLOUDFLARE_AI_GATEWAY_API_KEY',
     'CF_ACCOUNT_ID',
     'DEBUG_ROUTES',
+    'DEV_MODE',
+    'E2E_TEST_MODE',
     'OPENCLAW_GATEWAY_TOKEN',
+    'SANDBOX_SLEEP_AFTER',
+    'TELEGRAM_BOT_TOKEN',
+    'TELEGRAM_DM_POLICY',
+    'DISCORD_BOT_TOKEN',
+    'DISCORD_DM_POLICY',
+    'SLACK_BOT_TOKEN',
+    'SLACK_APP_TOKEN',
     'R2_ACCESS_KEY_ID',
     'R2_SECRET_ACCESS_KEY',
+    'R2_BUCKET_NAME',
+    'CDP_SECRET',
+    'WORKER_URL',
   ] as const;
 
   await Promise.all(
