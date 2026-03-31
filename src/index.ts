@@ -126,11 +126,6 @@ const app = new Hono<AppEnv>();
 // This resolves them early so all downstream code can read env vars as plain strings.
 app.use('*', async (c, next) => {
   const secretKeys = [
-    'ANTHROPIC_API_KEY',
-    'ANTHROPIC_BASE_URL',
-    'OPENAI_API_KEY',
-    'AI_GATEWAY_API_KEY',
-    'AI_GATEWAY_BASE_URL',
     'CF_ACCESS_TEAM_DOMAIN',
     'CF_ACCESS_AUD',
     'CF_AI_GATEWAY_ACCOUNT_ID',
@@ -139,21 +134,11 @@ app.use('*', async (c, next) => {
     'CLOUDFLARE_AI_GATEWAY_API_KEY',
     'CF_ACCOUNT_ID',
     'DEBUG_ROUTES',
-    'DEV_MODE',
-    'E2E_TEST_MODE',
     'OPENCLAW_GATEWAY_TOKEN',
-    'SANDBOX_SLEEP_AFTER',
-    'TELEGRAM_BOT_TOKEN',
-    'TELEGRAM_DM_POLICY',
-    'DISCORD_BOT_TOKEN',
-    'DISCORD_DM_POLICY',
-    'SLACK_BOT_TOKEN',
-    'SLACK_APP_TOKEN',
+    'ANTHROPIC_API_KEY',
+    'OPENAI_API_KEY',
     'R2_ACCESS_KEY_ID',
     'R2_SECRET_ACCESS_KEY',
-    'R2_BUCKET_NAME',
-    'CDP_SECRET',
-    'WORKER_URL',
   ] as const;
 
   await Promise.all(
@@ -481,8 +466,18 @@ app.all('*', async (c) => {
     });
   }
 
+  // Inject gateway token into HTTP request if not already present.
+  // CF Access redirects strip query params, so authenticated users lose ?token=.
+  // Since the user already passed CF Access auth, we inject the token server-side.
+  let httpRequest = request;
+  if (c.env.OPENCLAW_GATEWAY_TOKEN && !url.searchParams.has('token')) {
+    const tokenUrl = new URL(url.toString());
+    tokenUrl.searchParams.set('token', c.env.OPENCLAW_GATEWAY_TOKEN);
+    httpRequest = new Request(tokenUrl.toString(), request);
+  }
+
   console.log('[HTTP] Proxying:', url.pathname + url.search);
-  const httpResponse = await sandbox.containerFetch(request, OPENCLAW_PORT);
+  const httpResponse = await sandbox.containerFetch(httpRequest, OPENCLAW_PORT);
   console.log('[HTTP] Response status:', httpResponse.status);
 
   // Add debug header to verify worker handled the request
