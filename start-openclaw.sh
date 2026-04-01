@@ -265,20 +265,12 @@ if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
     };
 }
 
-// Enable /mcp and /plugins slash commands
-config.commands = config.commands || {};
-config.commands.mcp = true;
-config.commands.plugins = true;
-
-// MCP servers
-config.mcp = config.mcp || {};
-config.mcp.servers = config.mcp.servers || {};
-config.mcp.servers.portal = {
-    command: 'npx',
-    args: ['-y', 'mcp-remote@latest', 'https://aloesapps.com/mcp'],
-};
-
-fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+// Remove stale keys that fail OpenClaw strict config validation
+delete config.mcp;
+if (config.commands) {
+delete config.commands.mcp;
+delete config.commands.plugins;
+}
 console.log('Configuration patched successfully');
 EOFPATCH
 
