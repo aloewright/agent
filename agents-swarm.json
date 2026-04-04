@@ -1,0 +1,104 @@
+{
+  "version": "2.0.0",
+  "description": "Ruflo V3 swarm agents — CLI-first, AI Gateway fallback",
+  "costStrategy": "cli-first",
+  "agents": [
+    {
+      "name": "coordinator",
+      "identity": { "name": "Queen", "emoji": "crown" },
+      "model": {
+        "primary": "claude-cli",
+        "fallbacks": ["cf-ai-gw-anthropic/claude-sonnet-4-5"]
+      },
+      "cli": {
+        "tool": "claude",
+        "args": ["--dangerously-skip-permissions"],
+        "timeout": 180000
+      },
+      "tools": { "allow": ["task-orchestration", "agent-management", "planning", "delegation"] },
+      "sandbox": { "mode": "sandbox", "scope": "shared" },
+      "subagents": { "allowAgents": ["architect", "coder", "researcher", "reviewer", "tester"] },
+      "systemPrompt": "You are the swarm coordinator. Break tasks into subtasks, delegate to specialist agents, collect and synthesize results. Never implement code directly."
+    },
+    {
+      "name": "architect",
+      "identity": { "name": "Architect", "emoji": "building_construction" },
+      "model": {
+        "primary": "claude-cli",
+        "fallbacks": ["gemini-cli", "cf-ai-gw-anthropic/claude-sonnet-4-5"]
+      },
+      "cli": {
+        "tool": "claude",
+        "args": ["--dangerously-skip-permissions"],
+        "timeout": 120000
+      },
+      "tools": { "allow": ["system-design", "api-design", "architecture-review"] },
+      "sandbox": { "mode": "sandbox", "scope": "agent" },
+      "subagents": { "allowAgents": [] }
+    },
+    {
+      "name": "coder",
+      "identity": { "name": "Coder", "emoji": "keyboard" },
+      "model": {
+        "primary": "codex-cli",
+        "fallbacks": ["claude-cli", "cf-ai-gw-openai/codex-mini"]
+      },
+      "cli": {
+        "tool": "codex",
+        "args": ["--quiet"],
+        "timeout": 120000
+      },
+      "tools": { "deny": ["admin", "deployment", "agent-management"] },
+      "sandbox": { "mode": "sandbox", "scope": "agent" },
+      "workspace": "/root/clawd",
+      "subagents": { "allowAgents": [] }
+    },
+    {
+      "name": "researcher",
+      "identity": { "name": "Researcher", "emoji": "mag" },
+      "model": {
+        "primary": "gemini-cli",
+        "fallbacks": ["claude-cli", "cf-ai-gw-workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast"]
+      },
+      "cli": {
+        "tool": "gemini",
+        "timeout": 120000
+      },
+      "tools": { "allow": ["web-search", "documentation-lookup", "summarization"] },
+      "sandbox": { "mode": "sandbox", "scope": "agent" },
+      "subagents": { "allowAgents": [] }
+    },
+    {
+      "name": "reviewer",
+      "identity": { "name": "Reviewer", "emoji": "shield" },
+      "model": {
+        "primary": "claude-cli",
+        "fallbacks": ["cf-ai-gw-anthropic/claude-sonnet-4-5"]
+      },
+      "cli": {
+        "tool": "claude",
+        "args": ["--dangerously-skip-permissions"],
+        "timeout": 120000
+      },
+      "tools": { "allow": ["code-review", "security-audit", "performance-analysis"] },
+      "sandbox": { "mode": "sandbox", "scope": "agent" },
+      "subagents": { "allowAgents": [] }
+    },
+    {
+      "name": "tester",
+      "identity": { "name": "Tester", "emoji": "test_tube" },
+      "model": {
+        "primary": "codex-cli",
+        "fallbacks": ["claude-cli", "cf-ai-gw-workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast"]
+      },
+      "cli": {
+        "tool": "codex",
+        "args": ["--quiet"],
+        "timeout": 120000
+      },
+      "tools": { "allow": ["test-generation", "test-execution", "coverage-analysis"] },
+      "sandbox": { "mode": "sandbox", "scope": "agent" },
+      "subagents": { "allowAgents": [] }
+    }
+  ]
+}

@@ -265,13 +265,37 @@ if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
     };
 }
 
+// Swarm agents — inject agents.list from agents-swarm.json
+try {
+    var swarmPath = '/app/agents-swarm.json';
+    if (fs.existsSync(swarmPath)) {
+        var swarmDefs = JSON.parse(fs.readFileSync(swarmPath, 'utf8'));
+        config.agents = config.agents || {};
+        config.agents.list = (swarmDefs.agents || []).map(function(a) {
+            var entry = { name: a.name, identity: a.identity, model: a.model };
+            if (a.tools) entry.tools = a.tools;
+            if (a.sandbox) entry.sandbox = a.sandbox;
+            if (a.subagents) entry.subagents = a.subagents;
+            if (a.workspace) entry.workspace = a.workspace;
+            if (a.systemPrompt) entry.systemPrompt = a.systemPrompt;
+            return entry;
+        });
+        console.log('Swarm agents injected: ' + config.agents.list.length + ' agents');
+    }
+} catch (e) {
+    console.warn('Swarm agent injection failed:', e.message);
+}
+
 // Remove stale keys that fail OpenClaw strict config validation
 delete config.mcp;
 if (config.commands) {
 delete config.commands.mcp;
 delete config.commands.plugins;
 }
-console.log('Configuration patched successfully');
+
+// Write patched config back to disk
+fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+console.log('Configuration patched and saved to:', configPath);
 EOFPATCH
 
 # ============================================================

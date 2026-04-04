@@ -1,0 +1,88 @@
+import type { CliConfig, ModelConfig } from './types';
+import { buildCliCommand, parseCliOutput, estimateCostSavings, resolveCliTool } from './cli-runner';
+
+interface RouteRequest {
+  prompt: string;
+  model: ModelConfig;
+  cli?: CliConfig;
+  systemPrompt?: string;
+}
+
+interface RouteResult {
+  content: string;
+  source: 'cli' | 'gateway';
+  tool?: string;
+  costSaved: number;
+  durationMs: number;
+}
+
+type FetchFn = (url: string, init: RequestInit) => Promise<Response>;
+
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+export class CostAwareRouter {
+  private sandbox: { exec: (cmd: string) => Promise<{ stdout?: string; stderr?: string }> };
+  private savings = 0;
+
+  constructor(sandbox: { exec: (cmd: string) => Promise<{ stdout?: string; stderr?: string }> }) {
+    this.sandbox = sandbox;
+  }
+
+  async route(request: RouteRequest, gatewayFetch?: FetchFn): Promise<RouteResult> {
+    const start = Date.now();
+
+    // Step 1: Try CLI (free path)
+    if (request.cli) {
+      const available = await resolveCliTool(this.sandbox, request.cli.tool, []);
+      if (available) {
+        const command = buildCliCommand(available, request.prompt, request.cli);
+        try {
+          const result = await this.sandbox.exec(command);
+          const output = parseCliOutput(result.stdout ?? '', result.stderr ?? '');
+          if (output.success && output.content) {
+            const inputTokens = estimateTokens(request.prompt);
+            const outputTokens = estimateTokens(output.content);
+            const saved = estimateCostSavings(available, inputTokens, outputTokens);
+            this.savings += saved.saved;
+            return {
+              content: output.content,
+              source: 'cli',
+              tool: available,
+              costSaved: saved.saved,
+              durationMs: Date.now() - start,
+            };
+          }
+        } catch {
+          // CLI failed — fall through to gateway
+        }
+      }
+    }
+
+    // Step 2: Fall back to AI Gateway (paid path)
+    if (gatewayFetch) {
+      const fallbackModel = request.model.fallbacks?.find((f) => f.startsWith('cf-ai-gw-'));
+      if (fallbackModel) {
+        const messages: Array<{ role: string; content: string }> = [];
+        if (request.systemPrompt) messages.push({ role: 'system', content: request.systemPrompt });
+        messages.push({ role: 'user', content: request.prompt });
+
+        const response = await gatewayFetch('', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages, max_tokens: 8192 }),
+        });
+        const body = await response.json() as { choices?: Array<{ message: { content: string } }> };
+        const content = body.choices?.[0]?.message?.content ?? '';
+        return { content, source: 'gateway', costSaved: 0, durationMs: Date.now() - start };
+      }
+    }
+
+    throw new Error('No CLI tool or gateway fallback available');
+  }
+
+  totalCostSaved(): number {
+    return this.savings;
+  }
+}
