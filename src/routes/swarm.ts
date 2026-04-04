@@ -1,9 +1,7 @@
 import { Hono } from 'hono';
 import type { AppEnv } from '../types';
-import { createAccessMiddleware } from '../auth';
 
 const swarm = new Hono<AppEnv>();
-swarm.use('*', createAccessMiddleware({ type: 'json' }));
 
 // GET /status — Swarm overview
 swarm.get('/status', async (c) => {
@@ -46,19 +44,23 @@ swarm.get('/memory/stats', async (c) => {
   const kv = c.env.SWARM_KV;
   if (!kv) return c.json({ error: 'SWARM_KV not configured' }, 503);
 
-  // Paginate through all keys to get complete stats
-  let cursor: string | undefined;
-  const allKeys: Array<{ name: string }> = [];
-  do {
-    const result = await kv.list({ prefix: 'swarm:', cursor });
-    allKeys.push(...result.keys);
-    cursor = result.list_complete ? undefined : result.cursor;
-  } while (cursor);
+  try {
+    let cursor: string | undefined;
+    const allKeys: Array<{ name: string }> = [];
+    do {
+      const result = await kv.list({ prefix: 'swarm:', cursor });
+      allKeys.push(...result.keys);
+      cursor = result.list_complete ? undefined : result.cursor;
+    } while (cursor);
 
-  return c.json({
-    totalEntries: allKeys.length,
-    agents: [...new Set(allKeys.map((k) => k.name.split(':')[1]))],
-  });
+    return c.json({
+      totalEntries: allKeys.length,
+      agents: [...new Set(allKeys.map((k) => k.name.split(':')[1]))],
+    });
+  } catch (error) {
+    console.error('[swarm] KV list failed:', error);
+    return c.json({ error: 'Failed to read swarm memory' }, 502);
+  }
 });
 
 export { swarm };
