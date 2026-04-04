@@ -103,6 +103,16 @@ if r2_configured; then
         rclone copy "r2:${R2_BUCKET}/tailscale/" /var/lib/tailscale/ $RCLONE_FLAGS -v 2>&1 || echo "WARNING: Tailscale state restore failed with exit code $?"
         echo "Tailscale state restored"
     fi
+
+    # Restore CLI OAuth tokens (Claude Code, Codex, Gemini)
+    for CLI_DIR in .claude .codex .gemini; do
+        REMOTE_CLI_COUNT=$(rclone ls "r2:${R2_BUCKET}/cli-auth/${CLI_DIR}/" $RCLONE_FLAGS 2>/dev/null | wc -l)
+        if [ "$REMOTE_CLI_COUNT" -gt 0 ]; then
+            echo "Restoring ${CLI_DIR} auth from R2..."
+            mkdir -p "/root/${CLI_DIR}"
+            rclone copy "r2:${R2_BUCKET}/cli-auth/${CLI_DIR}/" "/root/${CLI_DIR}/" $RCLONE_FLAGS -v 2>&1 || echo "WARNING: ${CLI_DIR} auth restore failed"
+        fi
+    done
 else
     echo "R2 not configured, starting fresh"
 fi
@@ -329,6 +339,9 @@ if r2_configured; then
                     -not -path '*/.git/*' \
                     -type f -printf '%P\n' 2>/dev/null
                 find /var/lib/tailscale -newer "$MARKER" -type f -printf 'ts:%P\n' 2>/dev/null
+                find /root/.claude -newer "$MARKER" -type f -printf 'oauth:%P\n' 2>/dev/null
+                find /root/.codex -newer "$MARKER" -type f -printf 'oauth:%P\n' 2>/dev/null
+                find /root/.gemini -newer "$MARKER" -type f -printf 'oauth:%P\n' 2>/dev/null
             } > "$CHANGED"
 
             COUNT=$(wc -l < "$CHANGED" 2>/dev/null || echo 0)
@@ -349,6 +362,12 @@ if r2_configured; then
                     rclone sync /var/lib/tailscale/ "r2:${R2_BUCKET}/tailscale/" \
                         $RCLONE_FLAGS --exclude='*.log' 2>> "$LOGFILE"
                 fi
+                for CLI_DIR in .claude .codex .gemini; do
+                    if [ -d "/root/${CLI_DIR}" ]; then
+                        rclone sync "/root/${CLI_DIR}/" "r2:${R2_BUCKET}/cli-auth/${CLI_DIR}/" \
+                            $RCLONE_FLAGS --exclude='*.log' --exclude='*.tmp' 2>> "$LOGFILE"
+                    fi
+                done
                 date -Iseconds > "$LAST_SYNC_FILE"
                 touch "$MARKER"
                 echo "[sync] Complete at $(date)" >> "$LOGFILE"

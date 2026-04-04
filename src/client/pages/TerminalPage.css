@@ -1,0 +1,53 @@
+.terminal-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 80px);
+}
+
+.terminal-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  align-items: center;
+}
+
+.terminal-toolbar button {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-primary);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.terminal-toolbar button:hover {
+  background: var(--surface-hover);
+}
+
+.terminal-toolbar button.danger {
+  border-color: var(--error-color);
+  color: var(--error-color);
+}
+
+.terminal-toolbar button.danger:hover {
+  background: var(--error-color);
+  color: white;
+}
+
+.terminal-toolbar select {
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-primary);
+  border-radius: var(--border-radius);
+  font-size: 13px;
+}
+
+.terminal-container {
+  flex: 1;
+  padding: 4px;
+  background: var(--bg-color);
+}

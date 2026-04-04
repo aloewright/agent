@@ -3,3 +3,8 @@ export { buildCliCommand, parseCliOutput, estimateCostSavings, runCliInSandbox, 
 export { HybridMemory } from './memory';
 export { CostAwareRouter } from './cost-router';
 export type * from './types';
+export { TerminalSession, buildTerminalCommand } from './terminal';
+export { SwarmAgent } from './domain/agent.entity';
+export { AgentStatus } from './domain/agent-status.vo';
+export type { SwarmDomainEvent } from './domain/swarm-event';
+export { agentTaskAssigned, agentTaskCompleted, agentFailed } from './domain/swarm-event';

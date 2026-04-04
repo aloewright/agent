@@ -51,6 +51,9 @@ describe('syncToR2', () => {
         .mockResolvedValueOnce(createMockExecResult()) // rclone sync workspace
         .mockResolvedValueOnce(createMockExecResult()) // rclone sync skills
         .mockResolvedValueOnce(createMockExecResult()) // rclone sync tailscale
+        .mockResolvedValueOnce(createMockExecResult()) // rclone sync .claude
+        .mockResolvedValueOnce(createMockExecResult()) // rclone sync .codex
+        .mockResolvedValueOnce(createMockExecResult()) // rclone sync .gemini
         .mockResolvedValueOnce(createMockExecResult()) // date > last-sync
         .mockResolvedValueOnce(createMockExecResult(timestamp)); // cat last-sync
 
@@ -71,6 +74,9 @@ describe('syncToR2', () => {
         .mockResolvedValueOnce(createMockExecResult()) // rclone sync workspace
         .mockResolvedValueOnce(createMockExecResult()) // rclone sync skills
         .mockResolvedValueOnce(createMockExecResult()) // rclone sync tailscale
+        .mockResolvedValueOnce(createMockExecResult()) // rclone sync .claude
+        .mockResolvedValueOnce(createMockExecResult()) // rclone sync .codex
+        .mockResolvedValueOnce(createMockExecResult()) // rclone sync .gemini
         .mockResolvedValueOnce(createMockExecResult()) // date > last-sync
         .mockResolvedValueOnce(createMockExecResult(timestamp)); // cat last-sync
 
@@ -109,6 +115,9 @@ describe('syncToR2', () => {
         .mockResolvedValueOnce(createMockExecResult()) // workspace
         .mockResolvedValueOnce(createMockExecResult()) // skills
         .mockResolvedValueOnce(createMockExecResult()) // tailscale
+        .mockResolvedValueOnce(createMockExecResult()) // rclone sync .claude
+        .mockResolvedValueOnce(createMockExecResult()) // rclone sync .codex
+        .mockResolvedValueOnce(createMockExecResult()) // rclone sync .gemini
         .mockResolvedValueOnce(createMockExecResult()) // date
         .mockResolvedValueOnce(createMockExecResult('2026-01-27')); // cat
 
@@ -128,6 +137,9 @@ describe('syncToR2', () => {
         .mockResolvedValueOnce(createMockExecResult()) // workspace
         .mockResolvedValueOnce(createMockExecResult()) // skills
         .mockResolvedValueOnce(createMockExecResult()) // tailscale
+        .mockResolvedValueOnce(createMockExecResult()) // rclone sync .claude
+        .mockResolvedValueOnce(createMockExecResult()) // rclone sync .codex
+        .mockResolvedValueOnce(createMockExecResult()) // rclone sync .gemini
         .mockResolvedValueOnce(createMockExecResult()) // date
         .mockResolvedValueOnce(createMockExecResult('2026-01-27')); // cat
 
@@ -150,6 +162,9 @@ describe('syncToR2', () => {
         .mockResolvedValueOnce(createMockExecResult()) // workspace
         .mockResolvedValueOnce(createMockExecResult()) // skills
         .mockResolvedValueOnce(createMockExecResult()) // tailscale
+        .mockResolvedValueOnce(createMockExecResult()) // rclone sync .claude
+        .mockResolvedValueOnce(createMockExecResult()) // rclone sync .codex
+        .mockResolvedValueOnce(createMockExecResult()) // rclone sync .gemini
         .mockResolvedValueOnce(createMockExecResult()) // date
         .mockResolvedValueOnce(createMockExecResult('2026-01-27')); // cat
 
