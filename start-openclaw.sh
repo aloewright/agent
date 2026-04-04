@@ -310,7 +310,7 @@ if r2_configured; then
         touch "$MARKER"
 
         while true; do
-            sleep 30
+            sleep 10
 
             CHANGED=/tmp/.changed-files
             {
