@@ -42,6 +42,9 @@ export interface OpenClawEnv {
   BROWSER?: Fetcher;
   CDP_SECRET?: string; // Shared secret for CDP endpoint authentication
   WORKER_URL?: string; // Public URL of the worker (for CDP endpoint)
+  // Workers AI + KV for swarm agent memory
+  AI?: { run: (model: string, input: unknown) => Promise<unknown> };
+  SWARM_KV?: KVNamespace;
 }
 
 /**

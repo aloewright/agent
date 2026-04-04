@@ -28,6 +28,7 @@ import { OPENCLAW_PORT } from './config';
 import { createAccessMiddleware } from './auth';
 import { ensureOpenClawGateway, findExistingOpenClawProcess } from './gateway';
 import { publicRoutes, api, adminUi, debug, cdp } from './routes';
+import { swarm as swarmRoutes } from './routes/swarm';
 import { redactSensitiveParams } from './utils/logging';
 import loadingPageHtml from './assets/loading.html';
 import configErrorHtml from './assets/config-error.html';
@@ -150,12 +151,6 @@ app.use('*', async (c, next) => {
     }),
   );
 
-  // Log resolved AI Gateway vars for debugging
-  console.log('[Secrets] CLOUDFLARE_AI_GATEWAY_API_KEY resolved:', typeof c.env.CLOUDFLARE_AI_GATEWAY_API_KEY, !!c.env.CLOUDFLARE_AI_GATEWAY_API_KEY);
-  console.log('[Secrets] CF_AI_GATEWAY_ACCOUNT_ID resolved:', typeof c.env.CF_AI_GATEWAY_ACCOUNT_ID, !!c.env.CF_AI_GATEWAY_ACCOUNT_ID);
-  console.log('[Secrets] CF_AI_GATEWAY_GATEWAY_ID resolved:', typeof c.env.CF_AI_GATEWAY_GATEWAY_ID, !!c.env.CF_AI_GATEWAY_GATEWAY_ID);
-  console.log('[Secrets] CF_AI_GATEWAY_MODEL:', c.env.CF_AI_GATEWAY_MODEL);
-
   await next();
 });
 
@@ -246,6 +241,7 @@ app.use('*', async (c, next) => {
 });
 
 // Mount API routes (protected by Cloudflare Access)
+app.route('/api/admin/swarm', swarmRoutes);
 app.route('/api', api);
 
 // Mount Admin UI routes (protected by Cloudflare Access)

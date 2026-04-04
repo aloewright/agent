@@ -25,6 +25,22 @@ RUN npm install -g pnpm
 RUN npm install -g openclaw@2026.2.3 \
     && openclaw --version
 
+# Install AI CLI tools for swarm agents (OAuth-based, not API keys)
+# Claude Code CLI - Anthropic's coding agent
+RUN npm install -g @anthropic-ai/claude-code@latest \
+    && claude --version || echo "Claude Code CLI installed"
+
+# Codex CLI - OpenAI's coding agent
+RUN npm install -g @openai/codex@latest \
+    && codex --version || echo "Codex CLI installed"
+
+# Gemini CLI - Google's coding agent
+RUN npm install -g @google/gemini-cli@latest 2>/dev/null \
+    || echo "Gemini CLI: install manually if needed"
+
+# Create OAuth token storage directories
+RUN mkdir -p /root/.claude /root/.codex /root/.gemini
+
 # Create OpenClaw directories
 # Legacy .clawdbot paths are kept for R2 backup migration
 RUN mkdir -p /root/.openclaw \
@@ -32,12 +48,15 @@ RUN mkdir -p /root/.openclaw \
     && mkdir -p /root/clawd/skills
 
 # Copy startup script
-# Build cache bust: 2026-02-11-v30-rclone
+# Build cache bust: 2026-04-03-v31-swarm-cli-tools
 COPY start-openclaw.sh /usr/local/bin/start-openclaw.sh
 RUN chmod +x /usr/local/bin/start-openclaw.sh
 
 # Copy custom skills
 COPY skills/ /root/clawd/skills/
+
+# Copy swarm agent definitions
+COPY agents-swarm.json /app/agents-swarm.json
 
 # Set working directory
 WORKDIR /root/clawd

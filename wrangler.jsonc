@@ -67,6 +67,21 @@
   "browser": {
     "binding": "BROWSER",
   },
+  // Workers AI binding for embeddings and inference
+  "ai": {
+    "binding": "AI",
+  },
+  // KV namespace for swarm agent memory and message bus
+  // NOTE: Create a KV namespace with `wrangler kv namespace create SWARM_KV`
+  // and replace the placeholder ID below with the actual namespace ID.
+  // Alternatively, define this binding in environment-specific sections
+  // (e.g., [env.staging] or [env.production]) with real IDs.
+  "kv_namespaces": [
+    {
+      "binding": "SWARM_KV",
+      "id": "placeholder-create-with-wrangler"
+    }
+  ],
   // Application-level variables (non-secret, tied to this specific worker)
   "vars": {
     "CF_ACCESS_AUD": "33abff607ef9e709469582272d3173106e78b8f4557d274b821e254f3440b17f",
