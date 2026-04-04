@@ -56,6 +56,12 @@ export function createAccessMiddleware(options: AccessMiddlewareOptions) {
       return next();
     }
 
+    // Trust internal service-to-service calls (e.g. CloudOS orchestrator via service binding)
+    if (c.req.header('X-CloudOS-Internal') === 'true') {
+      c.set('accessUser', { email: 'cloudos@internal', name: 'CloudOS Agent' });
+      return next();
+    }
+
     const teamDomain = c.env.CF_ACCESS_TEAM_DOMAIN;
     const expectedAud = c.env.CF_ACCESS_AUD;
 
