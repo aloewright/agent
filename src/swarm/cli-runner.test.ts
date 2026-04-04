@@ -4,22 +4,22 @@ import { buildCliCommand, parseCliOutput, estimateCostSavings } from './cli-runn
 describe('buildCliCommand', () => {
   it('builds claude command with prompt', () => {
     const cmd = buildCliCommand('claude', 'Write a function', { args: ['--dangerously-skip-permissions'] });
-    expect(cmd).toBe('claude --dangerously-skip-permissions -p "Write a function"');
+    expect(cmd).toBe("claude '--dangerously-skip-permissions' -p 'Write a function'");
   });
 
   it('builds codex command with prompt', () => {
     const cmd = buildCliCommand('codex', 'Fix the bug', { args: ['--quiet'] });
-    expect(cmd).toBe('codex --quiet -p "Fix the bug"');
+    expect(cmd).toBe("codex '--quiet' -p 'Fix the bug'");
   });
 
   it('builds gemini command with prompt', () => {
     const cmd = buildCliCommand('gemini', 'Analyze code', {});
-    expect(cmd).toBe('gemini -p "Analyze code"');
+    expect(cmd).toBe("gemini -p 'Analyze code'");
   });
 
   it('escapes quotes in prompt', () => {
     const cmd = buildCliCommand('claude', 'Say "hello"', {});
-    expect(cmd).toBe('claude -p "Say \\"hello\\""');
+    expect(cmd).toBe("claude -p 'Say \"hello\"'");
   });
 });
 

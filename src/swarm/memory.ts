@@ -37,12 +37,19 @@ export class HybridMemory {
 
   async list(agentId: string): Promise<MemoryEntry[]> {
     const prefix = `${PREFIX}:${agentId}:`;
-    const { keys } = await this.kv.list({ prefix });
     const entries: MemoryEntry[] = [];
-    for (const { name } of keys) {
-      const raw = await this.kv.get(name);
-      if (raw) entries.push(JSON.parse(raw) as MemoryEntry);
-    }
+    let cursor: string | undefined;
+
+    // Paginate through all keys
+    do {
+      const result = await this.kv.list({ prefix, cursor });
+      for (const { name } of result.keys) {
+        const raw = await this.kv.get(name);
+        if (raw) entries.push(JSON.parse(raw) as MemoryEntry);
+      }
+      cursor = result.list_complete ? undefined : result.cursor;
+    } while (cursor);
+
     return entries;
   }
 
@@ -54,16 +61,23 @@ export class HybridMemory {
     const queryResult = await this.ai.run(EMBEDDING_MODEL, { text: [query] });
     const queryEmbedding = queryResult.data[0];
     const prefix = agentId ? `${PREFIX}:${agentId}:` : `${PREFIX}:`;
-    const { keys } = await this.kv.list({ prefix });
     const scored: Array<{ entry: MemoryEntry; score: number }> = [];
-    for (const { name } of keys) {
-      const raw = await this.kv.get(name);
-      if (!raw) continue;
-      const entry = JSON.parse(raw) as MemoryEntry;
-      if (!entry.embedding) continue;
-      const score = cosineSimilarity(queryEmbedding, entry.embedding);
-      scored.push({ entry, score });
-    }
+    let cursor: string | undefined;
+
+    // Paginate through all keys
+    do {
+      const result = await this.kv.list({ prefix, cursor });
+      for (const { name } of result.keys) {
+        const raw = await this.kv.get(name);
+        if (!raw) continue;
+        const entry = JSON.parse(raw) as MemoryEntry;
+        if (!entry.embedding) continue;
+        const score = cosineSimilarity(queryEmbedding, entry.embedding);
+        scored.push({ entry, score });
+      }
+      cursor = result.list_complete ? undefined : result.cursor;
+    } while (cursor);
+
     return scored.sort((a, b) => b.score - a.score).slice(0, 10).map((s) => s.entry);
   }
 }

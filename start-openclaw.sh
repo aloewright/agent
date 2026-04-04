@@ -278,6 +278,7 @@ try {
             if (a.subagents) entry.subagents = a.subagents;
             if (a.workspace) entry.workspace = a.workspace;
             if (a.systemPrompt) entry.systemPrompt = a.systemPrompt;
+            if (a.cli) entry.cli = a.cli;
             return entry;
         });
         console.log('Swarm agents injected: ' + config.agents.list.length + ' agents');

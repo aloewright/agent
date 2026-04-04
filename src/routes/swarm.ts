@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import type { AppEnv } from '../types';
 import { createAccessMiddleware } from '../auth';
-import { ensureOpenClawGateway } from '../gateway';
 
 const swarm = new Hono<AppEnv>();
 swarm.use('*', createAccessMiddleware({ type: 'json' }));
@@ -10,7 +9,7 @@ swarm.use('*', createAccessMiddleware({ type: 'json' }));
 swarm.get('/status', async (c) => {
   const sandbox = c.get('sandbox');
   try {
-    await ensureOpenClawGateway(sandbox, c.env);
+    // Read config file directly without ensuring gateway is running
     const configResult = await sandbox.exec('cat /root/.openclaw/openclaw.json 2>/dev/null || echo "{}"');
     const config = JSON.parse(configResult.stdout?.trim() ?? '{}');
     const agents = config?.agents?.list ?? [];
@@ -46,10 +45,19 @@ swarm.get('/status', async (c) => {
 swarm.get('/memory/stats', async (c) => {
   const kv = c.env.SWARM_KV;
   if (!kv) return c.json({ error: 'SWARM_KV not configured' }, 503);
-  const { keys } = await kv.list({ prefix: 'swarm:' });
+
+  // Paginate through all keys to get complete stats
+  let cursor: string | undefined;
+  const allKeys: Array<{ name: string }> = [];
+  do {
+    const result = await kv.list({ prefix: 'swarm:', cursor });
+    allKeys.push(...result.keys);
+    cursor = result.list_complete ? undefined : result.cursor;
+  } while (cursor);
+
   return c.json({
-    totalEntries: keys.length,
-    agents: [...new Set(keys.map((k: { name: string }) => k.name.split(':')[1]))],
+    totalEntries: allKeys.length,
+    agents: [...new Set(allKeys.map((k) => k.name.split(':')[1]))],
   });
 });
 

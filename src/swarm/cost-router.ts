@@ -35,7 +35,11 @@ export class CostAwareRouter {
 
     // Step 1: Try CLI (free path)
     if (request.cli) {
-      const available = await resolveCliTool(this.sandbox, request.cli.tool, []);
+      // Extract CLI tool names from model fallbacks (e.g., "gemini-cli" -> "gemini")
+      const cliFallbacks = (request.model.fallbacks ?? [])
+        .filter((f) => f.endsWith('-cli'))
+        .map((f) => f.replace(/-cli$/, ''));
+      const available = await resolveCliTool(this.sandbox, request.cli.tool, cliFallbacks);
       if (available) {
         const command = buildCliCommand(available, request.prompt, request.cli);
         try {
@@ -64,14 +68,20 @@ export class CostAwareRouter {
     if (gatewayFetch) {
       const fallbackModel = request.model.fallbacks?.find((f) => f.startsWith('cf-ai-gw-'));
       if (fallbackModel) {
+        // Parse fallback model string (e.g., "cf-ai-gw-anthropic/claude-sonnet-4-5")
+        const [providerPart, ...modelParts] = fallbackModel.replace('cf-ai-gw-', '').split('/');
+        const modelId = modelParts.join('/');
+
         const messages: Array<{ role: string; content: string }> = [];
         if (request.systemPrompt) messages.push({ role: 'system', content: request.systemPrompt });
         messages.push({ role: 'user', content: request.prompt });
 
-        const response = await gatewayFetch('', {
+        // Construct gateway URL with provider and model
+        const gatewayUrl = `/${providerPart}`;
+        const response = await gatewayFetch(gatewayUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages, max_tokens: 8192 }),
+          body: JSON.stringify({ model: modelId, messages, max_tokens: 8192 }),
         });
         const body = await response.json() as { choices?: Array<{ message: { content: string } }> };
         const content = body.choices?.[0]?.message?.content ?? '';
