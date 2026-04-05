@@ -64,8 +64,9 @@ for (const key of SECRETS_TO_SYNC) {
   }
 
   try {
-    execSync(`echo "${value}" | wrangler secret put ${key}`, {
+    execSync(`wrangler secret put ${key}`, {
       encoding: 'utf8',
+      input: value,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     console.log(`  ✓ ${key}`);
