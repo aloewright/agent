@@ -56,12 +56,19 @@ export async function autoApproveDevices(sandbox: Sandbox, env: OpenClawEnv): Pr
       );
       // eslint-disable-next-line no-await-in-loop
       await waitForProcess(approveProc, 20_000);
-      console.log('[auto-approve] Approved device:', device.requestId);
-      // Flush approved device state to R2 immediately
       // eslint-disable-next-line no-await-in-loop
-      await syncToR2(sandbox, env).catch((syncErr) => {
-        console.warn('[auto-approve] R2 sync failed after device approval (non-fatal):', syncErr);
-      });
+      const approveLogs = await approveProc.getLogs();
+      const didApprove = approveLogs.stdout?.toLowerCase().includes('approved') ?? false;
+      if (didApprove) {
+        console.log('[auto-approve] Approved device:', device.requestId);
+        // Flush approved device state to R2 immediately
+        // eslint-disable-next-line no-await-in-loop
+        await syncToR2(sandbox, env).catch((syncErr) => {
+          console.warn('[auto-approve] R2 sync failed after device approval (non-fatal):', syncErr);
+        });
+      } else {
+        console.warn('[auto-approve] Approval may have failed for device:', device.requestId, approveLogs.stderr);
+      }
     } catch (err) {
       console.warn('[auto-approve] Failed to approve device:', device.requestId, err);
     }

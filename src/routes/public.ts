@@ -72,7 +72,24 @@ publicRoutes.get('/_admin/assets/*', async (c) => {
 // Auth routes — only active when AUTH_SERVICE binding is configured
 // ---------------------------------------------------------------------------
 
-const LOGIN_PAGE = (error?: string) => `<!DOCTYPE html>
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sanitizeNext(raw: string): string {
+  let decoded = raw;
+  try { decoded = decodeURIComponent(raw); } catch { /* keep raw on malformed encoding */ }
+  // Reject absolute URLs, protocol-relative URLs, and percent-encoded schemes
+  if (!decoded || decoded.includes('://') || decoded.startsWith('//')) return '/';
+  return '/' + decoded.replace(/^\/+/, '');
+}
+
+const LOGIN_PAGE = (error?: string, next?: string) => `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -99,8 +116,9 @@ const LOGIN_PAGE = (error?: string) => `<!DOCTYPE html>
 <body>
   <div class="card">
     <h1>Sign in to Claw</h1>
-    ${error ? `<p class="error">${error}</p>` : ''}
+    ${error ? `<p class="error">${escapeHtml(error)}</p>` : ''}
     <form method="POST" action="/auth/sign-in">
+      ${next && next !== '/' ? `<input type="hidden" name="next" value="${escapeHtml(next)}" />` : ''}
       <label>Email</label>
       <input type="email" name="email" autocomplete="email" required autofocus />
       <label>Password</label>
@@ -114,7 +132,8 @@ const LOGIN_PAGE = (error?: string) => `<!DOCTYPE html>
 // GET /login — login page (only in auth service mode)
 publicRoutes.get('/login', (c) => {
   if (!isAuthServiceMode(c.env)) return c.redirect('/_admin/');
-  return c.html(LOGIN_PAGE());
+  const next = sanitizeNext(c.req.query('next') ?? '');
+  return c.html(LOGIN_PAGE(undefined, next));
 });
 
 // POST /auth/sign-in — proxy sign-in to cloudos-auth, relay session token as cookie
@@ -126,13 +145,9 @@ publicRoutes.post('/auth/sign-in', async (c) => {
   const body = await c.req.parseBody();
   const email = (body['email'] as string | undefined)?.trim();
   const password = body['password'] as string | undefined;
-  const rawNext = c.req.query('next') || '/';
-  const safeNext =
-    // Disallow absolute URLs and protocol-relative URLs to avoid open redirects
-    /^(?:[a-zA-Z][a-zA-Z\d+\-.]*:)?\/\//.test(rawNext) ? '/' :
-    // Normalize to a single leading slash path
-    '/' + rawNext.replace(/^\/+/, '');
-  const next = safeNext;
+  // Read next from query string first, then hidden form field
+  const rawNext = c.req.query('next') || (body['next'] as string | undefined) || '/';
+  const next = sanitizeNext(rawNext);
 
   if (!email || !password) {
     return c.html(LOGIN_PAGE('Email and password are required.'), 400);
