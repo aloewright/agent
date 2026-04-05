@@ -33,7 +33,7 @@ RUN npm install -g @anthropic-ai/claude-code@0.2.91 \
 RUN npm install -g @openai/codex@0.119.0-alpha.11 \
     && codex --version
 
-RUN npm install -g @google/gemini-cli@0.1.36 \
+RUN npm install -g @google/gemini-cli@0.36.0 \
     && gemini --version
 
 # Create OAuth token storage directories
