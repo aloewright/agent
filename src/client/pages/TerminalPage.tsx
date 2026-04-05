@@ -13,6 +13,7 @@ export default function TerminalPage({ onBack }: TerminalPageProps) {
   const termRef = useRef<HTMLDivElement>(null);
   const termInstance = useRef<Terminal | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const resizeHandlerRef = useRef<(() => void) | null>(null);
   const [tool, setTool] = useState('claude');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
@@ -77,6 +78,11 @@ export default function TerminalPage({ onBack }: TerminalPageProps) {
     ws.onopen = () => term.writeln('\x1b[32mConnected to sandbox terminal\x1b[0m\r\n');
     ws.onmessage = (event) => term.write(event.data);
     ws.onclose = () => term.writeln('\r\n\x1b[31mSession closed\x1b[0m');
+    ws.onerror = (err) => {
+      term.writeln('\r\n\x1b[31mConnection error\x1b[0m');
+      console.error('Terminal WebSocket error:', err);
+      ws.close();
+    };
 
     term.onData((data) => {
       if (ws.readyState === WebSocket.OPEN) {
@@ -85,33 +91,43 @@ export default function TerminalPage({ onBack }: TerminalPageProps) {
     });
 
     const handleResize = () => fitAddon.fit();
+    resizeHandlerRef.current = handleResize;
     window.addEventListener('resize', handleResize);
-    // Store cleanup ref
-    (term as any)._resizeHandler = handleResize;
   };
 
   const killSession = async () => {
+    const doCleanup = () => {
+      wsRef.current?.close();
+      if (resizeHandlerRef.current) {
+        window.removeEventListener('resize', resizeHandlerRef.current);
+        resizeHandlerRef.current = null;
+      }
+      termInstance.current?.dispose();
+      setSessionId(null);
+    };
+
     if (sessionId) {
       const token = new URLSearchParams(window.location.search).get('token') ?? '';
-      await fetch(`/api/admin/swarm/terminal/${sessionId}?token=${token}`, { method: 'DELETE' });
+      try {
+        await fetch(`/api/admin/swarm/terminal/${sessionId}?token=${token}`, { method: 'DELETE' });
+      } catch (err) {
+        console.error('Failed to delete terminal session:', err);
+      } finally {
+        doCleanup();
+      }
+    } else {
+      doCleanup();
     }
-    wsRef.current?.close();
-    if (termInstance.current) {
-      const handler = (termInstance.current as any)._resizeHandler;
-      if (handler) window.removeEventListener('resize', handler);
-      termInstance.current.dispose();
-    }
-    setSessionId(null);
   };
 
   useEffect(() => {
     return () => {
       wsRef.current?.close();
-      if (termInstance.current) {
-        const handler = (termInstance.current as any)._resizeHandler;
-        if (handler) window.removeEventListener('resize', handler);
-        termInstance.current.dispose();
+      if (resizeHandlerRef.current) {
+        window.removeEventListener('resize', resizeHandlerRef.current);
+        resizeHandlerRef.current = null;
       }
+      termInstance.current?.dispose();
     };
   }, []);
 
@@ -121,7 +137,7 @@ export default function TerminalPage({ onBack }: TerminalPageProps) {
         <button onClick={onBack}>&larr; Back</button>
         {!sessionId ? (
           <>
-            <select value={tool} onChange={(e) => setTool(e.target.value)}>
+            <select aria-label="Tool" value={tool} onChange={(e) => setTool(e.target.value)}>
               <option value="claude">Claude Code</option>
               <option value="codex">Codex</option>
               <option value="gemini">Gemini</option>
