@@ -49,6 +49,7 @@ export interface OpenClawEnv {
   // Workers AI + KV for swarm agent memory
   AI?: { run: (model: string, input: unknown) => Promise<unknown> };
   SWARM_KV?: KVNamespace;
+  CLAW_MESSENGER_API_KEY?: string; // API key for claw-messenger channel
 }
 
 /**

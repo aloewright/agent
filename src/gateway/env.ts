@@ -54,6 +54,7 @@ export function buildEnvVars(env: OpenClawEnv): Record<string, string> {
   if (env.R2_ACCESS_KEY_ID) envVars.R2_ACCESS_KEY_ID = env.R2_ACCESS_KEY_ID;
   if (env.R2_SECRET_ACCESS_KEY) envVars.R2_SECRET_ACCESS_KEY = env.R2_SECRET_ACCESS_KEY;
   if (env.R2_BUCKET_NAME) envVars.R2_BUCKET_NAME = env.R2_BUCKET_NAME;
+  if (env.CLAW_MESSENGER_API_KEY) envVars.CLAW_MESSENGER_API_KEY = env.CLAW_MESSENGER_API_KEY;
 
   return envVars;
 }

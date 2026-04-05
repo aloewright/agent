@@ -77,8 +77,6 @@ export async function findExistingOpenClawProcess(sandbox: Sandbox): Promise<Pro
       const isGatewayProcess =
         proc.command.includes('start-openclaw.sh') ||
         proc.command.includes('openclaw gateway') ||
-        // Legacy: match old startup script during transition
-        proc.command.includes('start-openclaw.sh') ||
         proc.command.includes('clawdbot gateway');
       const isCliCommand =
         proc.command.includes('openclaw devices') ||
@@ -126,12 +124,12 @@ export async function ensureOpenClawGateway(sandbox: Sandbox, env: OpenClawEnv):
       existingProcess.status,
     );
 
-    // Always use full startup timeout - a process can be "running" but not ready yet
-    // (e.g., just started by another concurrent request). Using a shorter timeout
-    // causes race conditions where we kill processes that are still initializing.
+    // Use a short initial probe to detect processes that crashed early.
+    // If the process is genuinely still starting, fall back to the full timeout.
+    const QUICK_PROBE_MS = 10_000;
     try {
-      console.log('Waiting for gateway on port', OPENCLAW_PORT, 'timeout:', STARTUP_TIMEOUT_MS);
-      await existingProcess.waitForPort(OPENCLAW_PORT, { mode: 'tcp', timeout: STARTUP_TIMEOUT_MS });
+      console.log('Quick-probing gateway on port', OPENCLAW_PORT, 'timeout:', QUICK_PROBE_MS);
+      await existingProcess.waitForPort(OPENCLAW_PORT, { mode: 'tcp', timeout: QUICK_PROBE_MS });
       console.log('Gateway is reachable');
       return existingProcess;
       // eslint-disable-next-line no-unused-vars

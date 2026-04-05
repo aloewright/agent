@@ -157,9 +157,18 @@
       let pollCount = 0;
       let consecutiveErrors = 0;
       const maxConsecutiveErrors = 5;
+      const maxPollCount = 90; // 90 polls × 2s = 3 minutes hard deadline
 
       async function checkStatus() {
         pollCount++;
+
+        if (pollCount > maxPollCount) {
+          errorEl.textContent = 'Container failed to start after 3 minutes. Try reloading or repairing.';
+          errorEl.style.display = 'block';
+          statusEl.textContent = 'Startup timed out';
+          document.querySelector('.spinner').style.display = 'none';
+          return;
+        }
 
         try {
           const response = await fetch('/api/status');

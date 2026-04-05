@@ -4,9 +4,18 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-05-06",
   "compatibility_flags": ["nodejs_compat"],
+  "logpush": true,
   "observability": {
     "enabled": true,
   },
+  "workers_dev": true,
+  // Custom domain routing
+  "routes": [
+    {
+      "pattern": "now.makethe.app",
+      "custom_domain": true,
+    },
+  ],
   // Static assets for admin UI (built by vite)
   "assets": {
     "directory": "./dist/client",
@@ -37,7 +46,7 @@
     {
       "class_name": "Sandbox",
       "image": "./Dockerfile",
-      "instance_type": "standard-3",
+      "instance_type": "standard-4",
       "max_instances": 1,
     },
   ],
@@ -123,6 +132,11 @@
       "binding": "DEBUG_ROUTES",
       "store_id": "e328ab1e3e624d24b1712d38aad51017",
       "secret_name": "DEBUG_ROUTES",
+    },
+    {
+      "binding": "CLAW_MESSENGER_API_KEY",
+      "store_id": "e328ab1e3e624d24b1712d38aad51017",
+      "secret_name": "CLAW_MESSENGER_API_KEY",
     },
   ],
   // Note: CF_ACCOUNT_ID should be set via `wrangler secret put CF_ACCOUNT_ID`

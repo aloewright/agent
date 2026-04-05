@@ -7,7 +7,9 @@
 # 4. Starts a background sync loop (rclone, watches for file changes)
 # 5. Starts the gateway
 
-set -e
+set -euo pipefail
+# Guard rclone commands — failures during R2 restore should not abort startup
+safe_rclone() { rclone "$@" 2>/dev/null || echo "WARNING: rclone $1 failed (non-fatal)"; }
 
 if pgrep -f "openclaw gateway" > /dev/null 2>&1; then
     echo "OpenClaw gateway is already running, exiting."
@@ -78,7 +80,7 @@ if r2_configured; then
     fi
 
     # Restore workspace
-    REMOTE_WS_COUNT=$(rclone ls "r2:${R2_BUCKET}/workspace/" $RCLONE_FLAGS 2>/dev/null | wc -l)
+    REMOTE_WS_COUNT=$(rclone ls "r2:${R2_BUCKET}/workspace/" $RCLONE_FLAGS 2>/dev/null | wc -l || echo 0)
     if [ "$REMOTE_WS_COUNT" -gt 0 ]; then
         echo "Restoring workspace from R2 ($REMOTE_WS_COUNT files)..."
         mkdir -p "$WORKSPACE_DIR"
@@ -87,7 +89,7 @@ if r2_configured; then
     fi
 
     # Restore skills
-    REMOTE_SK_COUNT=$(rclone ls "r2:${R2_BUCKET}/skills/" $RCLONE_FLAGS 2>/dev/null | wc -l)
+    REMOTE_SK_COUNT=$(rclone ls "r2:${R2_BUCKET}/skills/" $RCLONE_FLAGS 2>/dev/null | wc -l || echo 0)
     if [ "$REMOTE_SK_COUNT" -gt 0 ]; then
         echo "Restoring skills from R2 ($REMOTE_SK_COUNT files)..."
         mkdir -p "$SKILLS_DIR"
@@ -304,6 +306,17 @@ try {
     }
 } catch (e) {
     console.warn('Swarm agent injection failed:', e.message);
+}
+
+// Claw Messenger configuration (iMessage, RCS, SMS)
+if (process.env.CLAW_MESSENGER_API_KEY) {
+    config.channels['claw-messenger'] = {
+        enabled: true,
+        apiKey: process.env.CLAW_MESSENGER_API_KEY,
+        serverUrl: 'wss://claw-messenger.onrender.com',
+        preferredService: 'iMessage',
+        dmPolicy: 'pairing',
+    };
 }
 
 // Remove stale keys that fail OpenClaw strict config validation
