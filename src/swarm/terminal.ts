@@ -1,11 +1,28 @@
 import type { Sandbox, Process } from '@cloudflare/sandbox';
 
+const ALLOWED_TOOLS = ['claude', 'codex', 'gemini', 'shell'] as const;
+
 interface TerminalOptions {
   workspace?: string;
   env?: Record<string, string>;
 }
 
 export function buildTerminalCommand(tool: string, options: TerminalOptions): string {
+  // H1: Validate tool against allowlist
+  if (!ALLOWED_TOOLS.includes(tool as (typeof ALLOWED_TOOLS)[number])) {
+    throw new Error(`Invalid tool: ${tool}. Allowed tools: ${ALLOWED_TOOLS.join(', ')}`);
+  }
+
+  // L1: Validate workspace does not contain shell metacharacters
+  if (options.workspace) {
+    if (!/^[a-zA-Z0-9/_.-]+$/.test(options.workspace)) {
+      throw new Error('Invalid workspace path: contains disallowed characters');
+    }
+    if (!options.workspace.startsWith('/root/')) {
+      throw new Error('Invalid workspace path: must start with /root/');
+    }
+  }
+
   const cdPrefix = options.workspace ? `cd ${options.workspace} && ` : '';
   switch (tool) {
     case 'claude':
@@ -17,7 +34,8 @@ export function buildTerminalCommand(tool: string, options: TerminalOptions): st
     case 'shell':
       return 'bash';
     default:
-      return `${cdPrefix}${tool}`;
+      // Unreachable due to allowlist check above, but satisfies TypeScript
+      throw new Error(`Invalid tool: ${tool}`);
   }
 }
 

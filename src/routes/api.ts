@@ -88,6 +88,11 @@ adminApi.post('/devices/:requestId/approve', async (c) => {
     return c.json({ error: 'requestId is required' }, 400);
   }
 
+  // C2: Validate requestId to prevent command injection
+  if (!/^[a-zA-Z0-9_-]+$/.test(requestId)) {
+    return c.json({ error: 'Invalid request ID format' }, 400);
+  }
+
   try {
     // Ensure openclaw is running first
     await ensureOpenClawGateway(sandbox, c.env);
@@ -131,7 +136,8 @@ adminApi.post('/devices/:requestId/approve', async (c) => {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return c.json({ error: errorMessage }, 500);
+    const safeError = process.env.DEBUG_ROUTES === 'true' ? errorMessage : 'Internal error';
+    return c.json({ error: safeError }, 500);
   }
 });
 
@@ -174,6 +180,11 @@ adminApi.post('/devices/approve-all', async (c) => {
     const results: Array<{ requestId: string; success: boolean; error?: string }> = [];
 
     for (const device of pending) {
+      // C2: Validate requestId from parsed device list before interpolating into shell command
+      if (!/^[a-zA-Z0-9_-]+$/.test(device.requestId)) {
+        results.push({ requestId: device.requestId, success: false, error: 'Invalid request ID format' });
+        continue;
+      }
       try {
         // eslint-disable-next-line no-await-in-loop -- sequential device approval required
         const approveProc = await sandbox.startProcess(
@@ -221,7 +232,8 @@ adminApi.post('/devices/approve-all', async (c) => {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return c.json({ error: errorMessage }, 500);
+    const safeError = process.env.DEBUG_ROUTES === 'true' ? errorMessage : 'Internal error';
+    return c.json({ error: safeError }, 500);
   }
 });
 
@@ -322,7 +334,8 @@ adminApi.post('/gateway/restart', async (c) => {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return c.json({ error: errorMessage }, 500);
+    const safeError = process.env.DEBUG_ROUTES === 'true' ? errorMessage : 'Internal error';
+    return c.json({ error: safeError }, 500);
   }
 });
 

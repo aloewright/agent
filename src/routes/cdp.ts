@@ -236,9 +236,9 @@ cdp.get('/json/version', async (c) => {
     );
   }
 
-  // Build the WebSocket URL - preserve the secret in the WS URL
+  // Build the WebSocket URL - strip the secret from response bodies
   const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${wsProtocol}//${url.host}/cdp?secret=${encodeURIComponent(providedSecret)}`;
+  const wsUrl = `${wsProtocol}//${url.host}/cdp`;
 
   return c.json({
     Browser: 'Cloudflare-Browser-Rendering/1.0',
@@ -288,9 +288,9 @@ cdp.get('/json/list', async (c) => {
     );
   }
 
-  // Build the WebSocket URL
+  // Build the WebSocket URL - strip the secret from response bodies
   const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${wsProtocol}//${url.host}/cdp?secret=${encodeURIComponent(providedSecret)}`;
+  const wsUrl = `${wsProtocol}//${url.host}/cdp`;
 
   // Return a placeholder target - actual target is created on WS connect
   return c.json([
@@ -342,9 +342,9 @@ cdp.get('/json', async (c) => {
     );
   }
 
-  // Build the WebSocket URL
+  // Build the WebSocket URL - strip the secret from response bodies
   const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${wsProtocol}//${url.host}/cdp?secret=${encodeURIComponent(providedSecret)}`;
+  const wsUrl = `${wsProtocol}//${url.host}/cdp`;
 
   return c.json([
     {
@@ -1902,16 +1902,26 @@ function sendEvent(ws: WebSocket, method: string, params?: Record<string, unknow
 }
 
 /**
- * Constant-time string comparison to prevent timing attacks
+ * Constant-time string comparison to prevent timing attacks.
+ * Pads to the same length so that differing lengths do not
+ * cause an early return that leaks length information.
  */
 function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
+  const encoder = new TextEncoder();
+  const aBuf = encoder.encode(a);
+  const bBuf = encoder.encode(b);
 
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  // Pad to same length to avoid length leakage
+  const maxLen = Math.max(aBuf.length, bBuf.length);
+  const aPadded = new Uint8Array(maxLen);
+  const bPadded = new Uint8Array(maxLen);
+  aPadded.set(aBuf);
+  bPadded.set(bBuf);
+
+  // Constant-time comparison
+  let result = aBuf.length ^ bBuf.length; // will be non-zero if lengths differ
+  for (let i = 0; i < maxLen; i++) {
+    result |= aPadded[i] ^ bPadded[i];
   }
   return result === 0;
 }

@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import TerminalPage from './TerminalPage';
 
-// xterm and its addons are not compatible with jsdom — stub them out
+// xterm and its addons are not compatible with happy-dom — stub them out
 vi.mock('xterm', () => ({
   Terminal: vi.fn().mockImplementation(() => ({
     loadAddon: vi.fn(),
@@ -24,7 +24,7 @@ vi.mock('@xterm/addon-web-links', () => ({
   WebLinksAddon: vi.fn().mockImplementation(() => ({})),
 }));
 
-// Stub CSS imports that jsdom cannot process
+// Stub CSS imports that happy-dom cannot process
 vi.mock('xterm/css/xterm.css', () => ({}));
 vi.mock('./TerminalPage.css', () => ({}));
 

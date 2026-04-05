@@ -31,7 +31,8 @@ debug.get('/version', async (c) => {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return c.json({ status: 'error', message: `Failed to get version info: ${errorMessage}` }, 500);
+    const safeError = process.env.DEBUG_ROUTES === 'true' ? errorMessage : 'Internal error';
+    return c.json({ status: 'error', message: `Failed to get version info: ${safeError}` }, 500);
   }
 });
 
@@ -91,7 +92,8 @@ debug.get('/processes', async (c) => {
     return c.json({ count: processes.length, processes: processData });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return c.json({ error: errorMessage }, 500);
+    const safeError = process.env.DEBUG_ROUTES === 'true' ? errorMessage : 'Internal error';
+    return c.json({ error: safeError }, 500);
   }
 });
 
@@ -121,7 +123,8 @@ debug.get('/gateway-api', async (c) => {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return c.json({ error: errorMessage, path }, 500);
+    const safeError = process.env.DEBUG_ROUTES === 'true' ? errorMessage : 'Internal error';
+    return c.json({ error: safeError, path }, 500);
   }
 });
 
@@ -129,6 +132,15 @@ debug.get('/gateway-api', async (c) => {
 debug.get('/cli', async (c) => {
   const sandbox = c.get('sandbox');
   const cmd = c.req.query('cmd') || 'openclaw --help';
+
+  // C1: Only allow commands starting with "openclaw"
+  if (!/^openclaw(\s|$)/.test(cmd)) {
+    return c.json({ error: 'Only openclaw commands are allowed' }, 400);
+  }
+
+  // Audit log
+  const userEmail = c.get('userEmail') ?? 'unknown';
+  console.log(`[audit] debug/cli user=${userEmail} cmd="${cmd}"`);
 
   try {
     const proc = await sandbox.startProcess(cmd);
@@ -145,7 +157,8 @@ debug.get('/cli', async (c) => {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return c.json({ error: errorMessage, command: cmd }, 500);
+    const safeError = process.env.DEBUG_ROUTES === 'true' ? errorMessage : 'Internal error';
+    return c.json({ error: safeError, command: cmd }, 500);
   }
 });
 
@@ -192,10 +205,11 @@ debug.get('/logs', async (c) => {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const safeError = process.env.DEBUG_ROUTES === 'true' ? errorMessage : 'Internal error';
     return c.json(
       {
         status: 'error',
-        message: `Failed to get logs: ${errorMessage}`,
+        message: `Failed to get logs: ${safeError}`,
         stdout: '',
         stderr: '',
       },
@@ -386,7 +400,8 @@ debug.get('/container-config', async (c) => {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return c.json({ error: errorMessage }, 500);
+    const safeError = process.env.DEBUG_ROUTES === 'true' ? errorMessage : 'Internal error';
+    return c.json({ error: safeError }, 500);
   }
 });
 

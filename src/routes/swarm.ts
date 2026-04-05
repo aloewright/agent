@@ -72,10 +72,26 @@ swarm.post('/spawn-terminal', async (c) => {
   const sandbox = c.get('sandbox');
   const body = await c.req.json<{ tool?: string; workspace?: string }>();
   const tool = body.tool ?? 'claude';
+  const workspace = body.workspace ?? '/root/clawd';
+
+  // H1: Validate tool against allowlist
+  const allowedTools = ['claude', 'codex', 'gemini', 'shell'];
+  if (!allowedTools.includes(tool)) {
+    return c.json({ error: `Invalid tool: ${tool}. Allowed: ${allowedTools.join(', ')}` }, 400);
+  }
+
+  // L1: Validate workspace path
+  if (!/^[a-zA-Z0-9/_.-]+$/.test(workspace)) {
+    return c.json({ error: 'Invalid workspace path: contains disallowed characters' }, 400);
+  }
+  if (!workspace.startsWith('/root/')) {
+    return c.json({ error: 'Invalid workspace path: must start with /root/' }, 400);
+  }
+
   const sessionId = crypto.randomUUID();
 
   const session = new TerminalSession(sandbox);
-  await session.start(tool, { workspace: body.workspace ?? '/root/clawd' });
+  await session.start(tool, { workspace });
   terminals.set(sessionId, session);
 
   return c.json({ sessionId, tool, processId: session.getProcessId() });

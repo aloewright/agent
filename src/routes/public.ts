@@ -4,6 +4,22 @@ import { OPENCLAW_PORT } from '../config';
 import { findExistingOpenClawProcess } from '../gateway';
 import { isAuthServiceMode } from '../auth';
 
+// Simple per-isolate rate limiter for auth endpoints
+const authAttempts = new Map<string, { count: number; resetAt: number }>();
+const AUTH_RATE_LIMIT = 10; // max attempts per window
+const AUTH_RATE_WINDOW = 60_000; // 1 minute
+
+function checkAuthRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = authAttempts.get(ip);
+  if (!entry || now > entry.resetAt) {
+    authAttempts.set(ip, { count: 1, resetAt: now + AUTH_RATE_WINDOW });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= AUTH_RATE_LIMIT;
+}
+
 /**
  * Public routes - NO Cloudflare Access authentication required
  *
@@ -149,6 +165,12 @@ publicRoutes.get('/login', (c) => {
 publicRoutes.post('/auth/sign-in', async (c) => {
   if (!isAuthServiceMode(c.env)) {
     return c.json({ error: 'Auth service not configured' }, 503);
+  }
+
+  // Rate limit check
+  const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+  if (!checkAuthRateLimit(ip)) {
+    return c.json({ error: 'Too many login attempts. Please try again later.' }, 429);
   }
 
   const body = await c.req.parseBody();

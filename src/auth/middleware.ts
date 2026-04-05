@@ -96,6 +96,11 @@ export function createAccessMiddleware(options: AccessMiddlewareOptions) {
   return async (c: Context<AppEnv>, next: Next) => {
     // Skip auth in dev mode or E2E test mode
     if (isDevMode(c.env) || isE2ETestMode(c.env)) {
+      // Safety check: dev/test modes must not coexist with production CF Access config
+      if (c.env.CF_ACCESS_TEAM_DOMAIN && c.env.CF_ACCESS_AUD) {
+        console.warn('[SECURITY] DEV_MODE or E2E_TEST_MODE is active alongside CF Access configuration. This is a potential misconfiguration.');
+      }
+      console.warn(`[SECURITY] Authentication bypassed: ${isDevMode(c.env) ? 'DEV_MODE' : 'E2E_TEST_MODE'} is active`);
       c.set('accessUser', { email: 'dev@localhost', name: 'Dev User' });
       return next();
     }

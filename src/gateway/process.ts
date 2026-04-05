@@ -50,6 +50,11 @@ export async function autoApproveDevices(sandbox: Sandbox, env: OpenClawEnv): Pr
   }
 
   for (const device of pending) {
+    // C2: Validate requestId to prevent command injection
+    if (!/^[a-zA-Z0-9_-]+$/.test(device.requestId)) {
+      console.warn('[auto-approve] Skipping device with invalid requestId:', device.requestId);
+      continue;
+    }
     try {
       const approveProc = await sandbox.startProcess(
         `openclaw devices approve ${device.requestId} --url ws://localhost:${OPENCLAW_PORT}${tokenArg}`,
