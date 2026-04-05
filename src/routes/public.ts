@@ -289,7 +289,7 @@ publicRoutes.post('/auth/sign-up', async (c) => {
       status: 302,
       headers: {
         Location: next,
-        'Set-Cookie': `claw_session=${data.token}; ${cookieFlags}`,
+        'Set-Cookie': `claw_session=${token}; ${cookieFlags}`,
       },
     });
   } catch (err) {
