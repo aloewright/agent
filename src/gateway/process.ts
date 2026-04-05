@@ -58,7 +58,9 @@ export async function autoApproveDevices(sandbox: Sandbox, env: OpenClawEnv): Pr
       await waitForProcess(approveProc, 20_000);
       // eslint-disable-next-line no-await-in-loop
       const approveLogs = await approveProc.getLogs();
-      const didApprove = approveLogs.stdout?.toLowerCase().includes('approved') ?? false;
+      const didApprove =
+        (approveLogs.stdout?.toLowerCase().includes('approved') ?? false) ||
+        approveProc.exitCode === 0;
       if (didApprove) {
         console.log('[auto-approve] Approved device:', device.requestId);
         // Flush approved device state to R2 immediately

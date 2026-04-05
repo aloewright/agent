@@ -96,17 +96,28 @@ export default function TerminalPage({ onBack }: TerminalPageProps) {
   };
 
   const killSession = async () => {
+    const doCleanup = () => {
+      wsRef.current?.close();
+      if (resizeHandlerRef.current) {
+        window.removeEventListener('resize', resizeHandlerRef.current);
+        resizeHandlerRef.current = null;
+      }
+      termInstance.current?.dispose();
+      setSessionId(null);
+    };
+
     if (sessionId) {
       const token = new URLSearchParams(window.location.search).get('token') ?? '';
-      await fetch(`/api/admin/swarm/terminal/${sessionId}?token=${token}`, { method: 'DELETE' });
+      try {
+        await fetch(`/api/admin/swarm/terminal/${sessionId}?token=${token}`, { method: 'DELETE' });
+      } catch (err) {
+        console.error('Failed to delete terminal session:', err);
+      } finally {
+        doCleanup();
+      }
+    } else {
+      doCleanup();
     }
-    wsRef.current?.close();
-    if (resizeHandlerRef.current) {
-      window.removeEventListener('resize', resizeHandlerRef.current);
-      resizeHandlerRef.current = null;
-    }
-    termInstance.current?.dispose();
-    setSessionId(null);
   };
 
   useEffect(() => {
