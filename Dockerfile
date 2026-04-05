@@ -30,7 +30,7 @@ RUN npm install -g openclaw@2026.2.3 \
 RUN npm install -g @anthropic-ai/claude-code@0.2.91 \
     && claude --version
 
-RUN npm install -g @openai/codex@0.1.2504182012 \
+RUN npm install -g @openai/codex@0.119.0-alpha.11 \
     && codex --version
 
 RUN npm install -g @google/gemini-cli@0.1.36 \
