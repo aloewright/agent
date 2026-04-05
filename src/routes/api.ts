@@ -110,9 +110,15 @@ adminApi.post('/devices/:requestId/approve', async (c) => {
     // Immediately sync to R2 after successful pairing so data survives container restarts
     if (success) {
       c.executionCtx.waitUntil(
-        syncToR2(sandbox, c.env).catch((err: Error) => {
-          console.error('[pairing] Post-approve R2 sync failed:', err);
-        }),
+        syncToR2(sandbox, c.env)
+          .then((result) => {
+            if (!result.success) {
+              console.error('[pairing] Post-approve R2 sync returned failure:', result.error ?? '(no details)');
+            }
+          })
+          .catch((err: Error) => {
+            console.error('[pairing] Post-approve R2 sync failed:', err);
+          }),
       );
     }
 
@@ -196,9 +202,15 @@ adminApi.post('/devices/approve-all', async (c) => {
     // Immediately sync to R2 after approvals so pairing data survives container restarts
     if (approvedCount > 0) {
       c.executionCtx.waitUntil(
-        syncToR2(sandbox, c.env).catch((err: Error) => {
-          console.error('[pairing] Post-approve-all R2 sync failed:', err);
-        }),
+        syncToR2(sandbox, c.env)
+          .then((result) => {
+            if (!result.success) {
+              console.error('[pairing] Post-approve-all R2 sync returned failure:', result.error ?? '(no details)');
+            }
+          })
+          .catch((err: Error) => {
+            console.error('[pairing] Post-approve-all R2 sync failed:', err);
+          }),
       );
     }
 

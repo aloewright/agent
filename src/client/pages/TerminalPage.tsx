@@ -16,9 +16,11 @@ export default function TerminalPage({ onBack }: TerminalPageProps) {
   const [tool, setTool] = useState('claude');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const [spawnError, setSpawnError] = useState<string | null>(null);
 
   const spawnTerminal = async () => {
     setConnecting(true);
+    setSpawnError(null);
     try {
       const token = new URLSearchParams(window.location.search).get('token') ?? '';
       const res = await fetch(`/api/admin/swarm/spawn-terminal?token=${token}`, {
@@ -26,13 +28,20 @@ export default function TerminalPage({ onBack }: TerminalPageProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tool, workspace: '/root/clawd' }),
       });
-      const data = (await res.json()) as { sessionId?: string };
+      const data = (await res.json()) as { sessionId?: string; error?: string };
+      if (!res.ok) {
+        const msg = data.error ?? `Server error (HTTP ${res.status})`;
+        console.error('Failed to spawn terminal:', res.status, msg);
+        setSpawnError(msg);
+        return;
+      }
       if (data.sessionId) {
         setSessionId(data.sessionId);
         connectWebSocket(data.sessionId, token);
       }
     } catch (err) {
       console.error('Failed to spawn terminal:', err);
+      setSpawnError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setConnecting(false);
     }
@@ -121,6 +130,7 @@ export default function TerminalPage({ onBack }: TerminalPageProps) {
             <button onClick={spawnTerminal} disabled={connecting}>
               {connecting ? 'Connecting...' : 'Launch Terminal'}
             </button>
+            {spawnError && <span className="spawn-error">{spawnError}</span>}
           </>
         ) : (
           <button onClick={killSession} className="danger">Kill Session</button>

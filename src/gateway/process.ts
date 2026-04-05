@@ -3,6 +3,7 @@ import type { OpenClawEnv } from '../types';
 import { OPENCLAW_PORT, STARTUP_TIMEOUT_MS } from '../config';
 import { buildEnvVars } from './env';
 import { ensureRcloneConfig } from './r2';
+import { syncToR2 } from './sync';
 import { waitForProcess } from './utils';
 
 // ---------------------------------------------------------------------------
@@ -28,8 +29,8 @@ function recordRestartAttempt(key: string): void {
  * Attempt to auto-approve any pending device pairing requests.
  * Runs in the background after gateway startup when AUTO_APPROVE_DEVICES=true.
  */
-export async function autoApproveDevices(sandbox: Sandbox, token?: string): Promise<void> {
-  const tokenArg = token ? ` --token ${token}` : '';
+export async function autoApproveDevices(sandbox: Sandbox, env: OpenClawEnv): Promise<void> {
+  const tokenArg = env.OPENCLAW_GATEWAY_TOKEN ? ` --token ${env.OPENCLAW_GATEWAY_TOKEN}` : '';
 
   // List pending devices
   let pending: Array<{ requestId: string }> = [];
@@ -56,6 +57,11 @@ export async function autoApproveDevices(sandbox: Sandbox, token?: string): Prom
       // eslint-disable-next-line no-await-in-loop
       await waitForProcess(approveProc, 20_000);
       console.log('[auto-approve] Approved device:', device.requestId);
+      // Flush approved device state to R2 immediately
+      // eslint-disable-next-line no-await-in-loop
+      await syncToR2(sandbox, env).catch((syncErr) => {
+        console.warn('[auto-approve] R2 sync failed after device approval (non-fatal):', syncErr);
+      });
     } catch (err) {
       console.warn('[auto-approve] Failed to approve device:', device.requestId, err);
     }
@@ -199,7 +205,7 @@ export async function ensureOpenClawGateway(sandbox: Sandbox, env: OpenClawEnv):
 
   // Auto-approve any pending device pairing requests (non-blocking)
   if (env.AUTO_APPROVE_DEVICES === 'true') {
-    autoApproveDevices(sandbox, env.OPENCLAW_GATEWAY_TOKEN).catch((err) => {
+    autoApproveDevices(sandbox, env).catch((err) => {
       console.warn('[Gateway] Auto-approve devices failed (non-fatal):', err);
     });
   }
