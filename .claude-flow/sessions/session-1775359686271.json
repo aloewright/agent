@@ -1,0 +1,19 @@
+{
+  "id": "session-1775359686271",
+  "startedAt": "2026-04-05T03:28:06.271Z",
+  "platform": "darwin",
+  "cwd": "/Users/aloe/Development/claw",
+  "context": {
+    "lastMatchedPatterns": [
+      "mem-0"
+    ]
+  },
+  "metrics": {
+    "edits": 38,
+    "commands": 0,
+    "tasks": 0,
+    "errors": 0
+  },
+  "endedAt": "2026-04-05T04:33:58.136Z",
+  "duration": 3951865
+}

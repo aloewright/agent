@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "computedAt": 1775363767843,
+  "entries": [
+    {
+      "id": "mem-0",
+      "content": "- [Agentic Ecosystem Stack](reference_agentic_ecosystem.md) — RuVector/ruflo/agentic-flow/OpenClaw layered architecture and CLI routing map\n",
+      "summary": "- [Agentic Ecosystem Stack](reference_agentic_ecosystem.md) — RuVector/ruflo/agentic-flow/OpenClaw l",
+      "category": "memory",
+      "confidence": 0.5,
+      "words": [
+        "agentic",
+        "ecosystem",
+        "stack",
+        "reference",
+        "agentic",
+        "ecosystem",
+        "ruvector",
+        "ruflo",
+        "agentic",
+        "flow",
+        "openclaw",
+        "layered",
+        "architecture",
+        "and",
+        "cli",
+        "routing",
+        "map"
+      ]
+    }
+  ]
+}
