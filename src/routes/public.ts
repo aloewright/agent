@@ -179,7 +179,8 @@ publicRoutes.post('/auth/sign-in', async (c) => {
       const err = (await resp.json().catch(() => ({}))) as { message?: string };
       authError = err.message || 'Invalid email or password.';
     }
-  } catch {
+  } catch (err) {
+    console.error('Sign-in error:', err instanceof Error ? err.message : err);
     authError = 'Auth service unavailable. Please try again.';
   }
 
@@ -269,7 +270,8 @@ publicRoutes.post('/auth/sign-up', async (c) => {
         'Set-Cookie': `claw_session=${data.token}; ${cookieFlags}`,
       },
     });
-  } catch {
+  } catch (err) {
+    console.error('Sign-up error:', err instanceof Error ? err.message : err, err instanceof Error ? err.stack : '');
     return c.html(LOGIN_PAGE('Auth service unavailable. Please try again.', next, 'signup'), 500);
   }
 });
