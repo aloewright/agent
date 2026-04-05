@@ -126,7 +126,13 @@ publicRoutes.post('/auth/sign-in', async (c) => {
   const body = await c.req.parseBody();
   const email = (body['email'] as string | undefined)?.trim();
   const password = body['password'] as string | undefined;
-  const next = (c.req.query('next') || '/').replace(/^(?!\/)/,'');
+  const rawNext = c.req.query('next') || '/';
+  const safeNext =
+    // Disallow absolute URLs and protocol-relative URLs to avoid open redirects
+    /^(?:[a-zA-Z][a-zA-Z\d+\-.]*:)?\/\//.test(rawNext) ? '/' :
+    // Normalize to a single leading slash path
+    '/' + rawNext.replace(/^\/+/, '');
+  const next = safeNext;
 
   if (!email || !password) {
     return c.html(LOGIN_PAGE('Email and password are required.'), 400);
