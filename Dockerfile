@@ -26,17 +26,15 @@ RUN npm install -g openclaw@2026.2.3 \
     && openclaw --version
 
 # Install AI CLI tools for swarm agents (OAuth-based, not API keys)
-# Claude Code CLI - Anthropic's coding agent
-RUN npm install -g @anthropic-ai/claude-code@latest \
-    && claude --version || echo "Claude Code CLI installed"
+# Pin versions for reproducible builds
+RUN npm install -g @anthropic-ai/claude-code@0.2.91 \
+    && claude --version
 
-# Codex CLI - OpenAI's coding agent
-RUN npm install -g @openai/codex@latest \
-    && codex --version || echo "Codex CLI installed"
+RUN npm install -g @openai/codex@0.1.2504182012 \
+    && codex --version
 
-# Gemini CLI - Google's coding agent
-RUN npm install -g @google/gemini-cli@latest 2>/dev/null \
-    || echo "Gemini CLI: install manually if needed"
+RUN npm install -g @google/gemini-cli@0.1.36 \
+    && gemini --version
 
 # Create OAuth token storage directories
 RUN mkdir -p /root/.claude /root/.codex /root/.gemini

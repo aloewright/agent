@@ -72,6 +72,14 @@
     },
   ],
 
+  // Service binding to cloudos-auth worker for better-auth session validation
+  "services": [
+    {
+      "binding": "AUTH_SERVICE",
+      "service": "cloudos-auth",
+    },
+  ],
+
   // Browser Rendering binding for CDP shim
   "browser": {
     "binding": "BROWSER",
@@ -81,14 +89,11 @@
     "binding": "AI",
   },
   // KV namespace for swarm agent memory and message bus
-  // NOTE: Create a KV namespace with `wrangler kv namespace create SWARM_KV`
-  // and replace the placeholder ID below with the actual namespace ID.
-  // Alternatively, define this binding in environment-specific sections
-  // (e.g., [env.staging] or [env.production]) with real IDs.
+  // KV namespace for swarm agent memory and message bus
   "kv_namespaces": [
     {
       "binding": "SWARM_KV",
-      "id": "placeholder-create-with-wrangler"
+      "id": "50b8d2e194e2451cb53596ec59f4bdcb"
     }
   ],
   // Application-level variables (non-secret, tied to this specific worker)

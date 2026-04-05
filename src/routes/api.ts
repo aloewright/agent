@@ -107,6 +107,21 @@ adminApi.post('/devices/:requestId/approve', async (c) => {
     // Check for success indicators (case-insensitive, CLI outputs "Approved ...")
     const success = stdout.toLowerCase().includes('approved') || proc.exitCode === 0;
 
+    // Immediately sync to R2 after successful pairing so data survives container restarts
+    if (success) {
+      c.executionCtx.waitUntil(
+        syncToR2(sandbox, c.env)
+          .then((result) => {
+            if (!result.success) {
+              console.error('[pairing] Post-approve R2 sync returned failure:', result.error ?? '(no details)');
+            }
+          })
+          .catch((err: Error) => {
+            console.error('[pairing] Post-approve R2 sync failed:', err);
+          }),
+      );
+    }
+
     return c.json({
       success,
       requestId,
@@ -183,6 +198,22 @@ adminApi.post('/devices/approve-all', async (c) => {
     }
 
     const approvedCount = results.filter((r) => r.success).length;
+
+    // Immediately sync to R2 after approvals so pairing data survives container restarts
+    if (approvedCount > 0) {
+      c.executionCtx.waitUntil(
+        syncToR2(sandbox, c.env)
+          .then((result) => {
+            if (!result.success) {
+              console.error('[pairing] Post-approve-all R2 sync returned failure:', result.error ?? '(no details)');
+            }
+          })
+          .catch((err: Error) => {
+            console.error('[pairing] Post-approve-all R2 sync failed:', err);
+          }),
+      );
+    }
+
     return c.json({
       approved: results.filter((r) => r.success).map((r) => r.requestId),
       failed: results.filter((r) => !r.success),

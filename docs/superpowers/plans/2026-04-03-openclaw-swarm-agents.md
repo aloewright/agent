@@ -75,9 +75,8 @@ RUN npm install -g @openai/codex@latest \
     && codex --version || echo "Codex CLI installed"
 
 # Gemini CLI - Google's coding agent
-RUN npm install -g @anthropic-ai/gemini-cli@latest 2>/dev/null \
-    || npm install -g @google/gemini-cli@latest 2>/dev/null \
-    || echo "Gemini CLI: install manually if needed"
+RUN npm install -g @google/gemini-cli@0.1.36 \
+    && gemini --version
 
 # Create OAuth token storage directory
 RUN mkdir -p /root/.claude /root/.codex /root/.gemini
