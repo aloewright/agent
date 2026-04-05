@@ -89,12 +89,12 @@ function sanitizeNext(raw: string): string {
   return '/' + decoded.replace(/^\/+/, '');
 }
 
-const LOGIN_PAGE = (error?: string, next?: string) => `<!DOCTYPE html>
+const LOGIN_PAGE = (error?: string, next?: string, mode: 'signin' | 'signup' = 'signin') => `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Claw — Sign in</title>
+  <title>Claw — ${mode === 'signin' ? 'Sign in' : 'Sign up'}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e5e5e5;
@@ -111,20 +111,28 @@ const LOGIN_PAGE = (error?: string, next?: string) => `<!DOCTYPE html>
              cursor: pointer; }
     button:hover { background: #fff; }
     .error { color: #f87171; font-size: 0.8rem; margin-bottom: 1rem; }
+    .toggle { text-align: center; margin-top: 1rem; font-size: 0.8rem; color: #888; }
+    .toggle a { color: #e5e5e5; text-decoration: underline; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Sign in to Claw</h1>
+    <h1>${mode === 'signin' ? 'Sign in to Claw' : 'Create an account'}</h1>
     ${error ? `<p class="error">${escapeHtml(error)}</p>` : ''}
-    <form method="POST" action="/auth/sign-in">
+    <form method="POST" action="${mode === 'signin' ? '/auth/sign-in' : '/auth/sign-up'}">
       ${next && next !== '/' ? `<input type="hidden" name="next" value="${escapeHtml(next)}" />` : ''}
+      ${mode === 'signup' ? '<label>Name</label>\n      <input type="text" name="name" autocomplete="name" required />' : ''}
       <label>Email</label>
       <input type="email" name="email" autocomplete="email" required autofocus />
       <label>Password</label>
-      <input type="password" name="password" autocomplete="current-password" required />
-      <button type="submit">Sign in</button>
+      <input type="password" name="password" autocomplete="${mode === 'signin' ? 'current-password' : 'new-password'}" required />
+      <button type="submit">${mode === 'signin' ? 'Sign in' : 'Sign up'}</button>
     </form>
+    <p class="toggle">
+      ${mode === 'signin'
+        ? `Don't have an account? <a href="/login?mode=signup${next && next !== '/' ? '&next=' + escapeHtml(encodeURIComponent(next)) : ''}">Sign up</a>`
+        : `Already have an account? <a href="/login${next && next !== '/' ? '?next=' + escapeHtml(encodeURIComponent(next)) : ''}">Sign in</a>`}
+    </p>
   </div>
 </body>
 </html>`;
@@ -133,7 +141,8 @@ const LOGIN_PAGE = (error?: string, next?: string) => `<!DOCTYPE html>
 publicRoutes.get('/login', (c) => {
   if (!isAuthServiceMode(c.env)) return c.redirect('/_admin/');
   const next = sanitizeNext(c.req.query('next') ?? '');
-  return c.html(LOGIN_PAGE(undefined, next));
+  const mode = c.req.query('mode') === 'signup' ? 'signup' : 'signin';
+  return c.html(LOGIN_PAGE(undefined, next, mode));
 });
 
 // POST /auth/sign-in — proxy sign-in to cloudos-auth, relay session token as cookie
@@ -188,6 +197,67 @@ publicRoutes.post('/auth/sign-in', async (c) => {
       'Set-Cookie': `claw_session=${token}; ${cookieFlags}`,
     },
   });
+});
+
+// POST /auth/sign-up — proxy sign-up to cloudos-auth, then sign in
+publicRoutes.post('/auth/sign-up', async (c) => {
+  if (!isAuthServiceMode(c.env)) {
+    return c.json({ error: 'Auth service not configured' }, 503);
+  }
+
+  const body = await c.req.parseBody();
+  const name = (body['name'] as string | undefined)?.trim();
+  const email = (body['email'] as string | undefined)?.trim();
+  const password = body['password'] as string | undefined;
+  const rawNext = c.req.query('next') || (body['next'] as string | undefined) || '/';
+  const next = sanitizeNext(rawNext);
+
+  if (!email || !password || !name) {
+    return c.html(LOGIN_PAGE('Name, email, and password are required.', next, 'signup'), 400);
+  }
+
+  try {
+    // Create account
+    const signUpResp = await c.env.AUTH_SERVICE!.fetch('http://internal/api/auth/sign-up/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password }),
+    });
+
+    if (!signUpResp.ok) {
+      const err = (await signUpResp.json().catch(() => ({}))) as { message?: string };
+      return c.html(LOGIN_PAGE(err.message || 'Sign up failed.', next, 'signup'), 400);
+    }
+
+    // Sign in immediately after sign-up
+    const signInResp = await c.env.AUTH_SERVICE!.fetch('http://internal/api/auth/sign-in/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!signInResp.ok) {
+      // Account created but sign-in failed — redirect to sign-in page
+      return c.html(LOGIN_PAGE('Account created. Please sign in.', next, 'signin'));
+    }
+
+    const data = (await signInResp.json()) as { token?: string };
+    if (!data.token) {
+      return c.html(LOGIN_PAGE('Account created. Please sign in.', next, 'signin'));
+    }
+
+    const isSecure = new URL(c.req.url).protocol === 'https:';
+    const cookieFlags = `HttpOnly; SameSite=Strict; Path=/; Max-Age=604800${isSecure ? '; Secure' : ''}`;
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: next,
+        'Set-Cookie': `claw_session=${data.token}; ${cookieFlags}`,
+      },
+    });
+  } catch {
+    return c.html(LOGIN_PAGE('Auth service unavailable. Please try again.', next, 'signup'), 500);
+  }
 });
 
 // GET /auth/sign-out — clear session cookie and redirect to login
