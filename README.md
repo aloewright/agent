@@ -343,7 +343,7 @@ If you prefer more control, you can manually create an Access application:
 
 ### Alternative: better-auth (cloudos-auth)
 
-AloeAgent supports session-based authentication via a `cloudos-auth` service binding as an alternative to Cloudflare Access. When `AUTH_SERVICE` is configured in `wrangler.jsonc`, AloeAgent will use cookie-based sessions (`claw_session`) instead of JWT validation. See the service bindings section in `wrangler.jsonc`.
+AloeAgent supports session-based authentication via a `cloudos-auth` service binding as an alternative to Cloudflare Access. When `AUTH_SERVICE` is configured in `wrangler.jsonc`, AloeAgent will use better-auth's cookie-based sessions (`better-auth.session_token`) instead of JWT validation. The cookie is set on `.pdx.software` domain for cross-subdomain sharing. See the service bindings section in `wrangler.jsonc`.
 
 ### Local Development
 

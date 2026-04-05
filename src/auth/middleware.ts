@@ -17,8 +17,8 @@ export function isAuthServiceMode(env: OpenClawEnv): boolean {
 
 /**
  * Validate a request against the cloudos-auth worker.
- * Expects a `claw_session` HttpOnly cookie whose value is the better-auth
- * session token (set at login via /auth/sign-in).
+ * Forwards all cookies to the auth service, which uses better-auth's default
+ * session cookie (better-auth.session_token) set on .pdx.software domain.
  *
  * Returns the authenticated user or null if the session is missing/invalid.
  */
@@ -28,14 +28,16 @@ export async function validateWithAuthService(
 ): Promise<{ email: string; name?: string } | null> {
   if (!cookieHeader) return null;
 
-  const match = cookieHeader.split(';').find((c) => c.trim().startsWith('claw_session='));
-  if (!match) return null;
-  const token = match.split('=').slice(1).join('=').trim();
-  if (!token) return null;
+  // Check for better-auth session cookie
+  const hasSessionCookie = cookieHeader.split(';').some((c) => 
+    c.trim().startsWith('better-auth.session_token=')
+  );
+  if (!hasSessionCookie) return null;
 
   try {
+    // Forward all cookies to the auth service for session validation
     const resp = await authService.fetch('http://internal/api/auth/get-session', {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Cookie: cookieHeader },
     });
     if (!resp.ok) return null;
     const data = (await resp.json()) as { user?: { email: string; name?: string } };

@@ -67,13 +67,6 @@ test.describe('Sign-out endpoint', () => {
     expect(response.headers()['location']).toBe('/login');
   });
 
-  test('GET /auth/sign-out clears the session cookie', async ({ request }) => {
-    const response = await request.get('/auth/sign-out', {
-      maxRedirects: 0,
-    });
-    const setCookie = response.headers()['set-cookie'] ?? '';
-    // The cookie must be expired (Max-Age=0) to clear it
-    expect(setCookie).toContain('claw_session=');
-    expect(setCookie).toContain('Max-Age=0');
-  });
+  // Note: The auth service (cloudos-auth) handles clearing better-auth cookies.
+  // The agent worker simply redirects to /login after forwarding the sign-out request.
 });

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import AdminPage from './pages/AdminPage';
 import TerminalPage from './pages/TerminalPage';
+import SettingsPage from './pages/SettingsPage';
 import './App.css';
 
 export default function App() {
-  const [view, setView] = useState<'admin' | 'terminal'>('admin');
+  const [view, setView] = useState<'admin' | 'terminal' | 'settings'>('admin');
 
   return (
     <div className="app">
@@ -20,11 +21,16 @@ export default function App() {
             className={view === 'terminal' ? 'active' : ''}
             onClick={() => setView('terminal')}
           >Terminal</button>
+          <button
+            className={view === 'settings' ? 'active' : ''}
+            onClick={() => setView('settings')}
+          >Settings</button>
         </nav>
       </header>
       <main className="app-main">
         {view === 'admin' && <AdminPage />}
         {view === 'terminal' && <TerminalPage onBack={() => setView('admin')} />}
+        {view === 'settings' && <SettingsPage />}
       </main>
     </div>
   );

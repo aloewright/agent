@@ -88,30 +88,23 @@ publicRoutes.get('/login', (c) => {
   return c.redirect(`https://auth.pdx.software?redirect=${encodeURIComponent('https://agent.pdx.software' + sanitizeNext(next))}`);
 });
 
-// GET /auth/sign-out — clear session cookie and redirect to auth sign-out
+// GET /auth/sign-out — forward to auth service for sign-out and redirect
 publicRoutes.get('/auth/sign-out', async (c) => {
-  // Best-effort: revoke session in auth service
+  // Best-effort: revoke session in auth service by forwarding cookies
   if (c.env.AUTH_SERVICE) {
     const cookie = c.req.header('Cookie') ?? '';
-    const match = cookie.split(';').find((s) => s.trim().startsWith('claw_session='));
-    const token = match?.split('=').slice(1).join('=').trim();
-    if (token) {
+    if (cookie) {
       c.executionCtx.waitUntil(
         c.env.AUTH_SERVICE.fetch('http://internal/api/auth/sign-out', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Cookie: cookie },
         }).catch(() => {}),
       );
     }
   }
 
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: '/login',
-      'Set-Cookie': 'claw_session=; HttpOnly; SameSite=Lax; Path=/; Domain=.pdx.software; Max-Age=0',
-    },
-  });
+  // Redirect to login; the auth service clears its own cookies on sign-out
+  return c.redirect('/login');
 });
 
 export { publicRoutes };

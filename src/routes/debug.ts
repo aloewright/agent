@@ -139,7 +139,8 @@ debug.get('/cli', async (c) => {
   }
 
   // Audit log
-  const userEmail = c.get('userEmail') ?? 'unknown';
+  const accessUser = c.get('accessUser');
+  const userEmail = accessUser?.email ?? 'unknown';
   console.log(`[audit] debug/cli user=${userEmail} cmd="${cmd}"`);
 
   try {

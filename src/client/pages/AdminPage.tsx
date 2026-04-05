@@ -3,30 +3,15 @@ import {
   listDevices,
   approveDevice,
   approveAllDevices,
-  restartGateway,
-  getStorageStatus,
-  triggerSync,
   AuthError,
   type PendingDevice,
   type PairedDevice,
   type DeviceListResponse,
-  type StorageStatusResponse,
 } from '../api';
 import './AdminPage.css';
 
-// Small inline spinner for buttons
 function ButtonSpinner() {
   return <span className="btn-spinner" />;
-}
-
-function formatSyncTime(isoString: string | null) {
-  if (!isoString) return 'Never';
-  try {
-    const date = new Date(isoString);
-    return date.toLocaleString();
-  } catch {
-    return isoString;
-  }
 }
 
 function formatTimestamp(ts: number) {
@@ -48,12 +33,9 @@ function formatTimeAgo(ts: number) {
 export default function AdminPage() {
   const [pending, setPending] = useState<PendingDevice[]>([]);
   const [paired, setPaired] = useState<PairedDevice[]>([]);
-  const [storageStatus, setStorageStatus] = useState<StorageStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
-  const [restartInProgress, setRestartInProgress] = useState(false);
-  const [syncInProgress, setSyncInProgress] = useState(false);
 
   const fetchDevices = useCallback(async () => {
     try {
@@ -78,20 +60,9 @@ export default function AdminPage() {
     }
   }, []);
 
-  const fetchStorageStatus = useCallback(async () => {
-    try {
-      const status = await getStorageStatus();
-      setStorageStatus(status);
-    } catch (err) {
-      // Don't show error for storage status - it's not critical
-      console.error('Failed to fetch storage status:', err);
-    }
-  }, []);
-
   useEffect(() => {
     fetchDevices();
-    fetchStorageStatus();
-  }, [fetchDevices, fetchStorageStatus]);
+  }, [fetchDevices]);
 
   const handleApprove = async (requestId: string) => {
     setActionInProgress(requestId);
@@ -128,50 +99,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleRestartGateway = async () => {
-    if (
-      !confirm(
-        'Are you sure you want to restart the gateway? This will disconnect all clients temporarily.',
-      )
-    ) {
-      return;
-    }
-
-    setRestartInProgress(true);
-    try {
-      const result = await restartGateway();
-      if (result.success) {
-        setError(null);
-        // Show success message briefly
-        alert('Gateway restart initiated. Clients will reconnect automatically.');
-      } else {
-        setError(result.error || 'Failed to restart gateway');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to restart gateway');
-    } finally {
-      setRestartInProgress(false);
-    }
-  };
-
-  const handleSync = async () => {
-    setSyncInProgress(true);
-    try {
-      const result = await triggerSync();
-      if (result.success) {
-        // Update the storage status with new lastSync time
-        setStorageStatus((prev) => (prev ? { ...prev, lastSync: result.lastSync || null } : null));
-        setError(null);
-      } else {
-        setError(result.error || 'Sync failed');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to sync');
-    } finally {
-      setSyncInProgress(false);
-    }
-  };
-
   return (
     <div className="devices-page">
       {error && (
@@ -182,70 +109,6 @@ export default function AdminPage() {
           </button>
         </div>
       )}
-
-      {storageStatus && !storageStatus.configured && (
-        <div className="warning-banner">
-          <div className="warning-content">
-            <strong>R2 Storage Not Configured</strong>
-            <p>
-              Paired devices and conversations will be lost when the container restarts. To enable
-              persistent storage, configure R2 credentials. See the{' '}
-              <a
-                href="https://github.com/cloudflare/moltworker"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                README
-              </a>{' '}
-              for setup instructions.
-            </p>
-            {storageStatus.missing && (
-              <p className="missing-secrets">Missing: {storageStatus.missing.join(', ')}</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {storageStatus?.configured && (
-        <div className="success-banner">
-          <div className="storage-status">
-            <div className="storage-info">
-              <span>
-                R2 storage is configured. Your data will persist across container restarts.
-              </span>
-              <span className="last-sync">
-                Last backup: {formatSyncTime(storageStatus.lastSync)}
-              </span>
-            </div>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={handleSync}
-              disabled={syncInProgress}
-            >
-              {syncInProgress && <ButtonSpinner />}
-              {syncInProgress ? 'Syncing...' : 'Backup Now'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      <section className="devices-section gateway-section">
-        <div className="section-header">
-          <h2>Gateway Controls</h2>
-          <button
-            className="btn btn-danger"
-            onClick={handleRestartGateway}
-            disabled={restartInProgress}
-          >
-            {restartInProgress && <ButtonSpinner />}
-            {restartInProgress ? 'Restarting...' : 'Restart Gateway'}
-          </button>
-        </div>
-        <p className="hint">
-          Restart the gateway to apply configuration changes or recover from errors. All connected
-          clients will be temporarily disconnected.
-        </p>
-      </section>
 
       {loading ? (
         <div className="loading">
