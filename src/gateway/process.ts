@@ -10,6 +10,7 @@ import { waitForProcess } from './utils';
 // Restart rate-limiting (module-level, per Worker isolate)
 // ---------------------------------------------------------------------------
 const RESTART_COOLDOWN_MS = 30_000; // 30 s between restart attempts
+const QUICK_PROBE_MS = 10_000;
 const lastRestartAttempt: Map<string, number> = new Map();
 
 function isRestartCoolingDown(key: string): boolean {
@@ -150,16 +151,31 @@ export async function ensureOpenClawGateway(sandbox: Sandbox, env: OpenClawEnv):
       existingProcess.status,
     );
 
-    // Use a short initial probe to detect processes that crashed early.
-    // If the process is genuinely still starting, fall back to the full timeout.
-    const QUICK_PROBE_MS = 10_000;
+    const waitTimeoutMs =
+      existingProcess.status === 'starting'
+        ? STARTUP_TIMEOUT_MS
+        : QUICK_PROBE_MS;
     try {
-      console.log('Quick-probing gateway on port', OPENCLAW_PORT, 'timeout:', QUICK_PROBE_MS);
-      await existingProcess.waitForPort(OPENCLAW_PORT, { mode: 'tcp', timeout: QUICK_PROBE_MS });
+      console.log(
+        'Waiting for existing gateway on port',
+        OPENCLAW_PORT,
+        'timeout:',
+        waitTimeoutMs,
+      );
+      await existingProcess.waitForPort(OPENCLAW_PORT, {
+        mode: 'tcp',
+        timeout: waitTimeoutMs,
+      });
       console.log('Gateway is reachable');
       return existingProcess;
       // eslint-disable-next-line no-unused-vars
     } catch (_e) {
+      if (existingProcess.status === 'starting') {
+        throw new Error(
+          'Gateway is still starting and not yet reachable. Please try again shortly.',
+          { cause: _e },
+        );
+      }
       // Timeout waiting for port - process is likely dead or stuck.
       // Apply restart cooldown to prevent concurrent requests from all trying to restart.
       const cooldownKey = 'gateway-restart';

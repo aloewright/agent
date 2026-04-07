@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { findExistingOpenClawProcess } from './process';
+import { findExistingOpenClawProcess, ensureOpenClawGateway } from './process';
 import type { Sandbox, Process } from '@cloudflare/sandbox';
-import { createMockSandbox } from '../test-utils';
+import { createMockSandbox, createMockEnv } from '../test-utils';
+import { STARTUP_TIMEOUT_MS } from '../config';
 
 function createFullMockProcess(overrides: Partial<Process> = {}): Process {
   return {
@@ -141,5 +142,33 @@ describe('findExistingOpenClawProcess', () => {
 
     const result = await findExistingOpenClawProcess(sandbox);
     expect(result).toBeNull();
+  });
+});
+
+describe('ensureOpenClawGateway', () => {
+  it('waits with full startup timeout for an existing starting process without restarting', async () => {
+    const waitForPort = vi.fn().mockResolvedValue(undefined);
+    const kill = vi.fn();
+    const gatewayProcess = createFullMockProcess({
+      id: 'gateway-starting',
+      command: '/usr/local/bin/start-openclaw.sh',
+      status: 'starting',
+      waitForPort,
+      kill,
+    });
+
+    const { sandbox, listProcessesMock, startProcessMock } = createMockSandbox();
+    listProcessesMock.mockResolvedValue([gatewayProcess]);
+    const env = createMockEnv();
+
+    const result = await ensureOpenClawGateway(sandbox, env);
+
+    expect(result).toBe(gatewayProcess);
+    expect(waitForPort).toHaveBeenCalledWith(18789, {
+      mode: 'tcp',
+      timeout: STARTUP_TIMEOUT_MS,
+    });
+    expect(kill).not.toHaveBeenCalled();
+    expect(startProcessMock).not.toHaveBeenCalled();
   });
 });
